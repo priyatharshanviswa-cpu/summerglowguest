@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Hotel Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&family=Fraunces:wght@600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f4f1ec;--surface:#fff;--border:#e5e0d8;--border2:#d0c9be;
+  --text:#1c1915;--muted:#7a7167;
+  --accent:#1a5276;--accent-l:#d6e8f5;--accent-t:#0e3350;
+  --green:#1e6b45;--green-l:#d4eddf;
+  --amber:#7a4f0d;--amber-l:#fdf0d5;
+  --red:#8b1a1a;--red-l:#fde8e8;
+  --purple:#4a235a;--purple-l:#f0e6f6;
+  --radius:14px;--radius-sm:9px;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* LOADING */
+#loadingScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.loading-logo{font-family:'Fraunces',serif;font-size:26px;color:var(--accent);margin-bottom:1rem;text-align:center;}
+.spinner-lg{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* FIREBASE SETUP */
+#firebaseSetup{display:none;align-items:flex-start;justify-content:center;padding:1.5rem;background:var(--bg);min-height:100vh;overflow-y:auto;}
+.setup-card{background:var(--surface);border-radius:20px;border:1px solid var(--border);padding:2rem;max-width:520px;width:100%;box-shadow:var(--shadow);margin:1rem 0;}
+.setup-logo{font-family:'Fraunces',serif;font-size:22px;color:var(--accent);margin-bottom:4px;}
+
+/* AUTH */
+#authScreen{display:none;align-items:center;justify-content:center;padding:1.5rem;background:var(--bg);min-height:100vh;}
+.auth-card{background:var(--surface);border-radius:20px;border:1px solid var(--border);padding:2rem;max-width:400px;width:100%;box-shadow:var(--shadow);}
+.auth-logo{font-family:'Fraunces',serif;font-size:22px;color:var(--accent);margin-bottom:4px;}
+.auth-tabs{display:flex;background:var(--bg);border-radius:var(--radius-sm);padding:3px;margin-bottom:1.25rem;}
+.auth-tab{flex:1;padding:8px;text-align:center;border-radius:7px;border:none;background:none;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;color:var(--muted);}
+.auth-tab.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+
+/* FORMS */
+.field-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px;font-weight:600;}
+.fw{margin-bottom:12px;}
+input[type="text"],input[type="email"],input[type="password"],input[type="tel"],input[type="number"],input[type="date"],input[type="url"],textarea,select{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);background:var(--bg);
+  -webkit-appearance:none;appearance:none;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+textarea{resize:vertical;min-height:70px;line-height:1.6;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+
+/* BUTTONS */
+.btn-big{width:100%;padding:13px;font-size:15px;font-weight:600;border-radius:var(--radius);background:var(--accent);color:#fff;border:none;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;margin-top:.5rem;}
+.btn-big:disabled{opacity:.4;cursor:not-allowed;}
+.btn{padding:8px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;font-weight:500;}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green);}
+.btn-amber{background:#d4860d;color:#fff;border-color:#d4860d;}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-purple{background:var(--purple);color:#fff;border-color:var(--purple);}
+.btn-wa{background:#25D366;color:#fff;border-color:#25D366;display:flex;align-items:center;gap:6px;justify-content:center;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+/* STATUS */
+.status{font-size:13px;padding:6px;text-align:center;min-height:26px;color:var(--muted);}
+.status.err{color:var(--red);}
+.status.ok{color:var(--green);}
+
+/* INFO BOX */
+.info-box{background:var(--accent-l);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--accent-t);margin-bottom:1rem;line-height:1.7;}
+.info-box ol{padding-left:18px;margin-top:6px;}
+.info-box a{color:var(--accent);font-weight:600;}
+.info-box code{background:rgba(26,82,118,.12);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:12px;}
+.divider{height:1px;background:var(--border);margin:1.25rem 0;}
+
+/* APP SHELL */
+#appScreen{display:none;padding-bottom:80px;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:200;}
+.topbar-title{font-family:'Fraunces',serif;font-size:17px;color:var(--accent);}
+.topbar-sub{font-size:11px;color:var(--muted);}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;}
+.sync-dot.off{background:var(--border2);}
+.user-btn{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 8px;}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom);}
+.nav-btn{flex:1;padding:10px 2px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;border:none;background:none;cursor:pointer;color:var(--muted);font-size:9px;font-family:'Plus Jakarta Sans',sans-serif;}
+.nav-btn.active{color:var(--accent);}
+.nav-icon{font-size:19px;}
+
+.panel{display:none;padding:1rem;}
+.panel.active{display:block;}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:.75rem;box-shadow:var(--shadow);}
+.card-title{font-size:14px;font-weight:600;margin-bottom:1rem;}
+.card-sm{padding:1rem;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.75rem;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 8px;text-align:center;}
+.stat-val{font-size:20px;font-weight:600;color:var(--accent);}
+.stat-label{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* BADGES */
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;}
+.badge-green{background:var(--green-l);color:var(--green);}
+.badge-amber{background:var(--amber-l);color:var(--amber);}
+.badge-red{background:var(--red-l);color:var(--red);}
+.badge-blue{background:var(--accent-l);color:var(--accent-t);}
+.badge-gray{background:var(--bg);color:var(--muted);}
+.badge-purple{background:var(--purple-l);color:var(--purple);}
+
+/* SEARCH & FILTER */
+.search-wrap{position:relative;margin-bottom:1rem;}
+.search-wrap input{padding-left:36px;background:var(--surface);}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);}
+.filter-row{display:flex;gap:8px;margin-bottom:1rem;overflow-x:auto;padding-bottom:4px;-ms-overflow-style:none;scrollbar-width:none;}
+.filter-row::-webkit-scrollbar{display:none;}
+.filter-btn{padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;white-space:nowrap;color:var(--muted);font-weight:500;}
+.filter-btn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* BOOKING ITEMS */
+.booking-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:.6rem;cursor:pointer;}
+.booking-item:active{border-color:var(--accent);}
+.booking-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.booking-name{font-size:15px;font-weight:600;}
+.booking-meta{font-size:12px;color:var(--muted);line-height:1.7;}
+.booking-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+
+/* SOURCE CHIPS */
+.source-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+.source-facebook{background:#e7f0fd;color:#1a3d8f;border-color:#b5cef5;}
+.source-bookingcom{background:#fff0e6;color:#8b3a00;border-color:#f5c899;}
+.source-walkin{background:var(--green-l);color:var(--green);border-color:#a8d8bc;}
+.source-phone{background:var(--amber-l);color:var(--amber);border-color:#e0c070;}
+.source-whatsapp{background:#e6faf0;color:#1a6b3c;border-color:#90dbb0;}
+.source-other{background:var(--bg);color:var(--muted);}
+
+/* PROPERTY TABS */
+.prop-tabs{display:flex;gap:8px;margin-bottom:1rem;}
+.prop-tab{flex:1;padding:10px 8px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:center;color:var(--muted);font-weight:500;}
+.prop-tab.on.hotel{background:var(--accent-l);color:var(--accent-t);border-color:var(--accent);}
+.prop-tab.on.villa{background:var(--purple-l);color:var(--purple);border-color:var(--purple);}
+
+/* ROOMS */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:10px;}
+.room-card{border-radius:var(--radius-sm);padding:1rem;border:1.5px solid var(--border);cursor:pointer;}
+.room-card.available{background:var(--green-l);border-color:#a8d8bc;}
+.room-card.occupied{background:var(--red-l);border-color:#f0b8b8;}
+.room-card.maintenance{background:var(--amber-l);border-color:#f0d090;}
+.room-name{font-size:14px;font-weight:600;margin-bottom:2px;}
+.room-type{font-size:11px;color:var(--muted);}
+.room-prop{font-size:10px;margin-top:2px;font-weight:600;}
+.room-prop.hotel{color:var(--accent);}
+.room-prop.villa{color:var(--purple);}
+
+/* CALENDAR */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.cal-nav{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.cal-month{font-family:'Fraunces',serif;font-size:16px;font-weight:600;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-day-header{font-size:10px;color:var(--muted);text-align:center;padding:4px 0;font-weight:600;}
+.cal-day{aspect-ratio:1;border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:11px;border:1px solid transparent;transition:all .12s;}
+.cal-day:hover{filter:brightness(.95);}
+.cal-day.today{border:2px solid var(--accent);font-weight:700;}
+.cal-day.selected{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important;}
+.cal-day.has-checkin{background:#d4eddf;color:#1e6b45;font-weight:600;border-color:#a8d8bc;}
+.cal-day.has-checkout{background:#fde8e8;color:#8b1a1a;font-weight:600;border-color:#f0b8b8;}
+.cal-day.has-stay{background:#d6e8f5;color:#0e3350;font-weight:600;border-color:#a0c8e8;}
+.cal-day.has-checkin.has-checkout{background:linear-gradient(135deg,#d4eddf 50%,#fde8e8 50%);color:#1c1915;border-color:#a8d8bc;}
+.cal-day-count{font-size:9px;opacity:.75;line-height:1;}
+.cal-day.other-month{opacity:.3;}
+.cal-day.empty{cursor:default;}
+.cal-legend{display:flex;gap:10px;margin-top:10px;font-size:11px;color:var(--muted);flex-wrap:wrap;}
+.cal-legend span{display:flex;align-items:center;gap:4px;}
+.cal-legend i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:99px;margin:0 auto 1.25rem;}
+.modal-title{font-family:'Fraunces',serif;font-size:18px;margin-bottom:1.25rem;color:var(--accent);}
+.modal-close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);margin-top:-4px;}
+
+/* DETAIL */
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.detail-row:last-child{border-bottom:none;}
+.detail-key{font-size:13px;color:var(--muted);flex-shrink:0;}
+.detail-val{font-size:14px;font-weight:500;text-align:right;max-width:62%;word-break:break-word;}
+.pay-summary{background:var(--accent-l);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;}
+.pay-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;}
+.pay-row.total{font-size:15px;font-weight:600;color:var(--accent-t);border-top:1px solid #b8d4ea;padding-top:8px;margin-top:4px;}
+
+/* EMPTY */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--muted);}
+.empty-icon{font-size:36px;margin-bottom:8px;}
+
+/* SPINNER */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+.spinner-dark{border-color:rgba(0,0,0,.15);border-top-color:var(--accent);}
+
+/* NUMBER STEPPER */
+.stepper{display:flex;align-items:center;gap:8px;}
+.stepper-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;color:var(--text);}
+.stepper-val{font-size:16px;font-weight:600;min-width:24px;text-align:center;}
+
+@media(min-width:600px){
+  .panel{padding:1.5rem;max-width:720px;margin:0 auto;}
+  .modal{border-radius:16px;margin:auto;}
+  .modal-overlay{align-items:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <div>
+    <div class="loading-logo">🏨 Hotel Manager</div>
+    <div class="spinner-lg"></div>
+  </div>
+</div>
+
+<!-- FIREBASE SETUP (first time only) -->
+<div id="firebaseSetup">
+  <div class="setup-card">
+    <div class="setup-logo">🔧 First-time Setup</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6">This is done once. After this every device just opens the link and logs in.</p>
+    <div class="info-box">
+      <b>Get your Firebase config (free):</b>
+      <ol>
+        <li>Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Add project → name it anything</li>
+        <li>Click gear ⚙ → Project settings → Web icon &lt;/&gt; → Register app → copy the 6 values below</li>
+        <li>Build → Firestore Database → Create → Production mode → <b>asia-south1</b></li>
+        <li>Firestore → Rules tab → replace with: <code>allow read, write: if request.auth != null;</code> → Publish</li>
+        <li>Build → Authentication → Get started → Email/Password → Enable</li>
+        <li>Authentication → Settings → Authorised domains → Add your Netlify URL</li>
+      </ol>
+    </div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">API Key</div><input type="text" id="fc-apiKey" placeholder="AIzaSy..."/></div>
+      <div class="fw"><div class="field-label">Auth Domain</div><input type="text" id="fc-authDomain" placeholder="xxx.firebaseapp.com"/></div>
+    </div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Project ID</div><input type="text" id="fc-projectId" placeholder="your-project-id"/></div>
+      <div class="fw"><div class="field-label">Storage Bucket</div><input type="text" id="fc-storageBucket" placeholder="xxx.appspot.com"/></div>
+    </div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Messaging Sender ID</div><input type="text" id="fc-messagingSenderId" placeholder="123456789"/></div>
+      <div class="fw"><div class="field-label">App ID</div><input type="text" id="fc-appId" placeholder="1:xxx:web:xxx"/></div>
+    </div>
+    <div class="divider"></div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Hotel name</div><input type="text" id="fc-hotelName" placeholder="e.g. Palm Garden"/></div>
+      <div class="fw"><div class="field-label">Your name</div><input type="text" id="fc-ownerName" placeholder="e.g. Sunil"/></div>
+    </div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Your email</div><input type="email" id="fc-email" placeholder="admin@hotel.com"/></div>
+      <div class="fw"><div class="field-label">Password</div><input type="password" id="fc-password" placeholder="min 6 chars"/></div>
+    </div>
+    <div class="divider"></div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Bank name</div><input type="text" id="fc-bankName" placeholder="Commercial Bank"/></div>
+      <div class="fw"><div class="field-label">Account holder</div><input type="text" id="fc-accountName" placeholder="Account name"/></div>
+    </div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Account number</div><input type="text" id="fc-accountNo" placeholder="Account number"/></div>
+      <div class="fw"><div class="field-label">Branch (optional)</div><input type="text" id="fc-branch" placeholder="Colombo"/></div>
+    </div>
+    <button class="btn-big" id="setupBtn" onclick="doFirebaseSetup()">Save & Create My Account</button>
+    <div class="status err" id="setupStatus"></div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">🏨 Hotel Manager</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;" id="authHotelSub">Sign in to continue</div>
+    <div class="auth-tabs">
+      <button class="auth-tab on" onclick="switchAuthTab('login',this)">Sign in</button>
+      <button class="auth-tab" onclick="switchAuthTab('register',this)">Add user</button>
+    </div>
+    <div id="loginForm">
+      <div class="fw"><div class="field-label">Email</div><input type="email" id="login-email" placeholder="your@email.com"/></div>
+      <div class="fw"><div class="field-label">Password</div><input type="password" id="login-password" placeholder="Password"/></div>
+      <button class="btn-big" id="loginBtn" onclick="doLogin()">Sign in</button>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="info-box">Must be signed in as admin on this browser to add users.</div>
+      <div class="fw"><div class="field-label">Name</div><input type="text" id="reg-name" placeholder="e.g. Nimal"/></div>
+      <div class="fw"><div class="field-label">Email</div><input type="email" id="reg-email" placeholder="staff@hotel.com"/></div>
+      <div class="fw"><div class="field-label">Password</div><input type="password" id="reg-password" placeholder="min 6 chars"/></div>
+      <button class="btn-big" id="regBtn" onclick="doRegister()">Create account</button>
+    </div>
+    <div class="status err" id="authStatus"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbarTitle">Hotel Manager</div>
+      <div class="topbar-sub" id="topbarDate"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="sync-dot" id="syncDot"></span>
+      <button class="user-btn" onclick="showUserMenu()">👤 <span id="userLabel"></span></button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="panel active" id="tab-dashboard">
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="st-today">–</div><div class="stat-label">Arriving today</div></div>
+      <div class="stat"><div class="stat-val" id="st-occupied">–</div><div class="stat-label">Occupied</div></div>
+      <div class="stat"><div class="stat-val" id="st-pending">–</div><div class="stat-label">Pending advance</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:.75rem"><button class="btn btn-sm" onclick="openRevenueReport()" style="flex:1;background:var(--accent-l);color:var(--accent-t);border-color:var(--accent-l);font-weight:600">📊 Revenue report</button></div>
+    <div class="card card-sm"><div class="card-title">📅 Arriving today</div><div id="todayList"></div></div>
+    <div class="card card-sm"><div class="card-title">🚪 Checking out today</div><div id="checkoutTodayList"></div></div>
+    <div class="card card-sm"><div class="card-title">🧹 Housekeeping needed</div><div id="housekeepingList"></div></div>
+    <div class="card card-sm"><div class="card-title">⚠️ Pending advances</div><div id="pendingList"></div></div>
+    <div class="card card-sm"><div class="card-title">📆 Next 7 days</div><div id="upcomingList"></div></div>
+  </div>
+
+  <!-- BOOKINGS -->
+  <div class="panel" id="tab-bookings">
+    <button class="btn-big" onclick="openNewBooking()" style="margin-bottom:1rem">+ New Booking</button>
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="Search name or phone..." oninput="renderBookings()"/></div>
+    <div class="filter-row">
+      <button class="filter-btn on" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('confirmed',this)">Confirmed</button>
+      <button class="filter-btn" onclick="setFilter('checked-in',this)">Checked In</button>
+      <button class="filter-btn" onclick="setFilter('pending-advance',this)">Pending Advance</button>
+      <button class="filter-btn" onclick="setFilter('checked-out',this)">Checked Out</button>
+      <button class="filter-btn" onclick="setFilter('hotel',this)">Hotel</button>
+      <button class="filter-btn" onclick="setFilter('villa',this)">Villa</button>
+    </div>
+    <div id="bookingList"></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="panel" id="tab-calendar">
+    <div class="card">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calPrev()">‹</button>
+        <div class="cal-month" id="calMonth"></div>
+        <button class="cal-nav" onclick="calNext()">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend" id="calLegend"></div>
+    </div>
+    <div id="calBookings"></div>
+  </div>
+
+  <!-- ROOMS -->
+  <div class="panel" id="tab-rooms">
+    <div class="prop-tabs">
+      <button class="prop-tab on hotel" id="ptHotel" onclick="setPropTab('hotel')">🏨 Hotel Rooms</button>
+      <button class="prop-tab villa" id="ptVilla" onclick="setPropTab('villa')">🌴 Villa Rooms</button>
+    </div>
+    <div class="card card-sm" style="margin-bottom:.75rem"><div style="display:flex;gap:12px;font-size:12px;flex-wrap:wrap;"><span>🟢 Available</span><span>🔴 Occupied</span><span>🟡 Maintenance</span></div></div>
+    <div class="room-grid" id="roomGrid"></div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div class="panel" id="tab-payments">
+    <div class="stats" style="margin-bottom:.75rem">
+      <div class="stat"><div class="stat-val" id="pay-total">–</div><div class="stat-label">Total revenue</div></div>
+      <div class="stat"><div class="stat-val" id="pay-advances">–</div><div class="stat-label">Advances in</div></div>
+      <div class="stat"><div class="stat-val" id="pay-balance">–</div><div class="stat-label">Balance due</div></div>
+    </div>
+    <div class="card card-sm"><div class="card-title">Payment records</div><div id="paymentList"></div></div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="panel" id="tab-orders">
+    <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="openAddMenuItem()" style="flex:1">+ Add menu item</button>
+      <button class="btn" onclick="copyMenuLink()" style="flex:1">🔗 Copy customer menu link</button>
+      <button class="btn" id="notifBtn" onclick="requestNotifPermission()" style="flex:1">🔔 Enable notifications</button>
+    </div>
+    <div class="card card-sm">
+      <div class="card-title">🍽️ Live orders</div>
+      <div id="liveOrdersList"><div class="empty"><div class="empty-icon">📭</div>No orders yet</div></div>
+    </div>
+    <div class="card card-sm">
+      <div class="card-title">📋 Menu items</div>
+      <div id="menuItemsList"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="panel" id="tab-settings">
+    <div class="card">
+      <div class="card-title">Hotel settings</div>
+      <div class="fw"><div class="field-label">Hotel name</div><input type="text" id="cfg-hotelName"/></div>
+      <div class="fw"><div class="field-label">Owner name</div><input type="text" id="cfg-ownerName"/></div>
+      <div class="divider"></div>
+      <div class="card-title">Bank details</div>
+      <div class="row2">
+        <div class="fw"><div class="field-label">Bank name</div><input type="text" id="cfg-bankName"/></div>
+        <div class="fw"><div class="field-label">Account holder</div><input type="text" id="cfg-accountName"/></div>
+      </div>
+      <div class="row2">
+        <div class="fw"><div class="field-label">Account number</div><input type="text" id="cfg-accountNo"/></div>
+        <div class="fw"><div class="field-label">Branch</div><input type="text" id="cfg-branch"/></div>
+      </div>
+      <div class="divider"></div>
+      <div class="card-title">WhatsApp — Booking / Bank details message</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.6">{guestName} {hotelName} {checkIn} {checkOut} {room} {roomType} {property} {adults} {kids} {total} {advance} {bankName} {accountName} {accountNo} {branchLine} {ownerName}</div>
+      <div class="fw"><textarea id="cfg-waTemplate" rows="9"></textarea></div>
+      <div class="divider"></div>
+      <div class="card-title">WhatsApp — Advance received thank you message</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.6">{guestName} {hotelName} {checkIn} {checkOut} {room} {advance} {balance} {ownerName}</div>
+      <div class="fw"><textarea id="cfg-waThanks" rows="7"></textarea></div>
+      <button class="btn-big" onclick="saveSettings()">Save settings</button>
+      <div class="status ok" id="settingsStatus"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Room configuration</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Assign each room to Hotel or Villa. Villa rooms are shown separately.</p>
+      <div id="roomConfigList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Add new user</div>
+      <div class="fw"><div class="field-label">Email</div><input type="email" id="nu-email" placeholder="staff@hotel.com"/></div>
+      <div class="fw"><div class="field-label">Password</div><input type="password" id="nu-password" placeholder="min 6 chars"/></div>
+      <div class="fw"><div class="field-label">Role</div>
+        <select id="nu-role">
+          <option value="admin">👔 Admin — full access</option>
+          <option value="housekeeping">🛏️ Housekeeping — arrivals, keys & cleaning</option>
+          <option value="kitchen">🍳 Kitchen — food orders only</option>
+        </select>
+      </div>
+      <button class="btn btn-green" style="width:100%;margin-top:4px" onclick="addUserFromSettings()">Create user account</button>
+      <div class="status" id="nuStatus"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottomNav" style="display:none">
+  <button class="nav-btn active" id="nb-dashboard" onclick="showTab('dashboard')"><span class="nav-icon">🏠</span>Home</button>
+  <button class="nav-btn" id="nb-bookings" onclick="showTab('bookings')"><span class="nav-icon">📋</span>Bookings</button>
+  <button class="nav-btn" id="nb-calendar" onclick="showTab('calendar')"><span class="nav-icon">📅</span>Calendar</button>
+  <button class="nav-btn" id="nb-rooms" onclick="showTab('rooms')"><span class="nav-icon">🚪</span>Rooms</button>
+  <button class="nav-btn" id="nb-orders" onclick="showTab('orders')"><span class="nav-icon">🍽️</span>Orders</button>
+  <button class="nav-btn" id="nb-settings" onclick="showTab('settings')"><span class="nav-icon">⚙️</span>Settings</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" style="display:none" onclick="closeModalOnBg(event)">
+  <div class="modal" id="modalContent"><div class="modal-handle"></div><div id="modalBody"></div></div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── GLOBALS ──────────────────────────────────────────────────────────
+let AUTH, DB;
+let hotelCfg = {};
+let bookings = [], rooms = [];
+let userRole = 'admin'; // 'admin' | 'housekeeping' | 'kitchen'
+let activeFilter = 'all', activePropTab = 'hotel';
+let unsubBookings = null, unsubRooms = null;
+let currentUser = null;
+let calDate = new Date();
+let calSelectedDate = null;
+
+const FIREBASE_CFG_KEY = 'hmFirebaseCfg';
+
+const DEFAULT_ROOMS = [
+  {id:'R101',name:'Room 101',type:'Deluxe Double',property:'hotel'},
+  {id:'R102',name:'Room 102',type:'Deluxe Double',property:'hotel'},
+  {id:'R103',name:'Room 103',type:'Deluxe Double',property:'hotel'},
+  {id:'R104',name:'Room 104',type:'Deluxe Double',property:'hotel'},
+  {id:'R201',name:'Room 201',type:'Deluxe Triple',property:'hotel'},
+  {id:'R202',name:'Room 202',type:'Deluxe Triple',property:'hotel'},
+  {id:'R203',name:'Room 203',type:'Deluxe Triple',property:'hotel'},
+  {id:'R204',name:'Room 204',type:'Deluxe Double',property:'hotel'},
+];
+
+// ─────────────────────────────────────────────────────────────────────
+// HARDCODED FIREBASE CONFIG
+// After completing first-time setup, paste your 6 Firebase values here.
+// This means the app NEVER asks for setup again on any device.
+// Leave as empty strings if you haven't set up Firebase yet.
+// ─────────────────────────────────────────────────────────────────────
+const HARDCODED_CONFIG = {
+  apiKey: "AIzaSyBthQxCjnJNygAX5JvtfSRBWxhfaFZoVig",
+  authDomain: "summer-glow.firebaseapp.com",
+  projectId: "summer-glow",
+  storageBucket: "summer-glow.firebasestorage.app",
+  messagingSenderId: "210248253727",
+  appId: "1:210248253727:web:68301140b2e00b021df02a"
+};
+// ─────────────────────────────────────────────────────────────────────
+
+// ── BOOTSTRAP ────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  // Priority: 1) hardcoded config, 2) localStorage, 3) show setup screen
+  const hardcoded = HARDCODED_CONFIG.apiKey ? HARDCODED_CONFIG : null;
+  const lsCfg = loadLocalCfg();
+  const cfg = hardcoded || lsCfg;
+  if (!cfg) { hide('loadingScreen'); show('firebaseSetup'); return; }
+  // Always keep localStorage fresh so session is instant next time
+  if (cfg) saveLocalCfg(cfg);
+  try {
+    await bootFirebase(cfg);
+  } catch(e) {
+    hide('loadingScreen');
+    // Show error details to help diagnose
+    document.getElementById('loadingScreen').style.display = 'flex';
+    document.getElementById('loadingScreen').innerHTML = `
+      <div style="max-width:480px;padding:2rem;background:#fff;border-radius:16px;border:1px solid #e5e0d8;margin:1rem;text-align:center">
+        <div style="font-size:28px;margin-bottom:.5rem">⚠️</div>
+        <div style="font-family:'Fraunces',serif;font-size:18px;color:#8b1a1a;margin-bottom:.75rem">Connection error</div>
+        <div style="font-size:13px;color:#7a7167;margin-bottom:1rem;line-height:1.6">${e.message||'Unknown error'}</div>
+        <div style="font-size:12px;background:#f4f1ec;padding:.75rem;border-radius:8px;color:#1c1915;margin-bottom:1rem;text-align:left;word-break:break-all">Check your Firebase config values in the HARDCODED_CONFIG section of index.html</div>
+        <button onclick="location.reload()" style="padding:10px 20px;background:#1a5276;color:#fff;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">Try again</button>
+        <br/><br/>
+        <button onclick="localStorage.clear();location.reload()" style="padding:8px 16px;background:none;color:#8b1a1a;border:1px solid #f0b8b8;border-radius:9px;font-size:13px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">Reset & reconfigure</button>
+      </div>`;
+  }
+});
+
+function loadLocalCfg() {
+  try { return JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY)); } catch(e) { return null; }
+}
+function saveLocalCfg(cfg) {
+  try { localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg)); } catch(e) {}
+}
+
+async function bootFirebase(fbCfg) {
+  const app = getApps().length ? getApps()[0] : initializeApp(fbCfg);
+  AUTH = getAuth(app);
+  DB = getFirestore(app);
+  onAuthStateChanged(AUTH, async user => {
+    hide('loadingScreen');
+    if (user) {
+      currentUser = user;
+      await loadHotelCfg();
+      await loadUserRole();
+      startListeners();
+      if (userRole === 'housekeeping') showHousekeepingApp();
+      else if (userRole === 'kitchen') showKitchenApp();
+      else showApp();
+    } else {
+      currentUser = null;
+      stopListeners();
+      showAuthScreen();
+    }
+  });
+}
+
+// ── FIRST TIME SETUP ─────────────────────────────────────────────────
+window.doFirebaseSetup = async () => {
+  const fields = ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'];
+  const fbCfg = {};
+  for (const f of fields) {
+    const v = document.getElementById('fc-'+f).value.trim();
+    if (!v) { setStatus('setupStatus','Please fill all Firebase config fields.','err'); return; }
+    fbCfg[f] = v;
+  }
+  const hotelName = document.getElementById('fc-hotelName').value.trim();
+  const email = document.getElementById('fc-email').value.trim();
+  const pw = document.getElementById('fc-password').value;
+  if (!hotelName||!email||pw.length<6) { setStatus('setupStatus','Fill hotel name, email and password (min 6 chars).','err'); return; }
+  const btn = document.getElementById('setupBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Setting up...';
+  setStatus('setupStatus','','');
+  try {
+    saveLocalCfg(fbCfg);
+    const app = initializeApp(fbCfg);
+    AUTH = getAuth(app); DB = getFirestore(app);
+    await createUserWithEmailAndPassword(AUTH, email, pw);
+    const cfg = {
+      hotelName, ownerName: document.getElementById('fc-ownerName').value.trim(),
+      bankName: document.getElementById('fc-bankName').value.trim(),
+      accountName: document.getElementById('fc-accountName').value.trim(),
+      accountNo: document.getElementById('fc-accountNo').value.trim(),
+      branch: document.getElementById('fc-branch').value.trim(),
+      waTemplate: defaultBookingTpl(),
+      waThanks: defaultThanksTpl(),
+      adminEmail: email,
+    };
+    await setDoc(doc(DB,'config','hotel'), cfg);
+    await setDoc(doc(DB,'config','firebase'), fbCfg);
+    for (const r of DEFAULT_ROOMS) await setDoc(doc(DB,'rooms',r.id), r);
+
+    // Show the user their config to paste into the file
+    const cfgStr = JSON.stringify(fbCfg, null, 2);
+    hide('firebaseSetup');
+    document.getElementById('loadingScreen').style.display='flex';
+    document.getElementById('loadingScreen').innerHTML = `
+      <div style="max-width:520px;padding:2rem;background:#fff;border-radius:20px;border:1px solid #e5e0d8;margin:1.5rem;">
+        <div style="font-family:'Fraunces',serif;font-size:20px;color:#1a5276;margin-bottom:.5rem">✅ Setup complete!</div>
+        <p style="font-size:13px;color:#7a7167;margin-bottom:1rem;line-height:1.6">
+          To make the app work on <b>all devices without asking for setup again</b>, paste your Firebase config into the HTML file before uploading to GitHub:
+        </p>
+        <div style="background:#f4f1ec;border-radius:9px;padding:1rem;font-family:monospace;font-size:12px;margin-bottom:1rem;white-space:pre-wrap;word-break:break-all;border:1px solid #e5e0d8">${escHtml(cfgStr)}</div>
+        <p style="font-size:13px;color:#7a7167;margin-bottom:1rem;line-height:1.6">
+          In your <b>index.html</b> find the section that says <b>HARDCODED FIREBASE CONFIG</b> and paste these values into the <code style="background:#d6e8f5;padding:2px 5px;border-radius:4px">HARDCODED_CONFIG</code> object.<br/><br/>
+          Then push to GitHub → Netlify deploys → done forever.
+        </p>
+        <button style="width:100%;padding:12px;background:#1a5276;color:#fff;border:none;border-radius:12px;font-size:15px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;font-weight:600" onclick="location.reload()">
+          Open the app now →
+        </button>
+      </div>`;
+  } catch(e) {
+    setStatus('setupStatus','Error: '+e.message,'err');
+    btn.disabled=false; btn.textContent='Save & Create My Account';
+  }
+};
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── AUTH ─────────────────────────────────────────────────────────────
+window.switchAuthTab = (tab, el) => {
+  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display = tab==='register'?'block':'none';
+  setStatus('authStatus','','');
+};
+
+window.doLogin = async () => {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  if (!email||!pw) { setStatus('authStatus','Enter email and password.','err'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Signing in...';
+  try {
+    await signInWithEmailAndPassword(AUTH, email, pw);
+  } catch(e) {
+    setStatus('authStatus','Invalid email or password.','err');
+    btn.disabled=false; btn.textContent='Sign in';
+  }
+};
+
+window.doRegister = async () => {
+  if (!currentUser) { setStatus('authStatus','Must be signed in as admin.','err'); return; }
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value;
+  if (!email||pw.length<6) { setStatus('authStatus','Fill all fields (min 6 char password).','err'); return; }
+  const btn = document.getElementById('regBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Creating...';
+  try {
+    const fbCfg = loadLocalCfg();
+    const tmpApp = initializeApp(fbCfg, 'tmp-'+Date.now());
+    const tmpAuth = getAuth(tmpApp);
+    await createUserWithEmailAndPassword(tmpAuth, email, pw);
+    await signOut(tmpAuth);
+    setStatus('authStatus','✓ User '+email+' created!','ok');
+    document.getElementById('reg-email').value='';
+    document.getElementById('reg-password').value='';
+  } catch(e) { setStatus('authStatus','Error: '+e.message,'err'); }
+  btn.disabled=false; btn.textContent='Create account';
+};
+
+window.addUserFromSettings = async () => {
+  const email = document.getElementById('nu-email').value.trim();
+  const pw = document.getElementById('nu-password').value;
+  const role = document.getElementById('nu-role').value;
+  if (!email||pw.length<6) { setStatus('nuStatus','Fill all fields (min 6 char password).','err'); return; }
+  try {
+    const fbCfg = loadLocalCfg();
+    const tmpApp = initializeApp(fbCfg, 'tmp2-'+Date.now());
+    const tmpAuth = getAuth(tmpApp);
+    const cred = await createUserWithEmailAndPassword(tmpAuth, email, pw);
+    // Save role to Firestore using admin DB
+    await setDoc(doc(DB,'users',cred.user.uid), { email, role, createdAt:new Date().toISOString() });
+    await signOut(tmpAuth);
+    setStatus('nuStatus','✓ '+email+' created as '+role+'!','ok');
+    document.getElementById('nu-email').value='';
+    document.getElementById('nu-password').value='';
+  } catch(e) { setStatus('nuStatus','Error: '+e.message,'err'); }
+};
+
+window.showUserMenu = () => showModal(
+  `<button class="modal-close" onclick="closeModal()">✕</button>
+   <div class="modal-title">Account</div>
+   <div class="detail-row"><span class="detail-key">Signed in as</span><span class="detail-val" style="font-size:13px">${esc(currentUser?.email||'')}</span></div>
+   <div class="btn-row" style="margin-top:1rem"><button class="btn btn-red" onclick="doSignOut()">Sign out</button></div>`
+);
+window.doSignOut = async () => { closeModal(); await signOut(AUTH); };
+
+// ── SHOW AUTH: auto-load firebase cfg from Firestore if not in LS ─────
+async function showAuthScreen() {
+  // If we have no local cfg at all, check if setup was done by loading
+  // from a known project URL is not possible without cfg — show setup.
+  hide('appScreen');
+  document.getElementById('bottomNav').style.display='none';
+  show('authScreen');
+}
+
+// ── FIRESTORE LISTENERS ───────────────────────────────────────────────
+function startListeners() {
+  const bq = query(collection(DB,'bookings'), orderBy('createdAt','desc'));
+  unsubBookings = onSnapshot(bq, snap => {
+    bookings = snap.docs.map(d=>({...d.data(),_id:d.id}));
+    renderAll(); setSyncDot(true);
+  }, ()=>setSyncDot(false));
+  unsubRooms = onSnapshot(collection(DB,'rooms'), snap => {
+    rooms = snap.docs.map(d=>({...d.data(),_id:d.id}));
+    if (!rooms.length) rooms = DEFAULT_ROOMS.slice();
+    renderRooms(); renderRoomConfig();
+  });
+}
+function stopListeners() {
+  if (unsubBookings) { unsubBookings(); unsubBookings=null; }
+  if (unsubRooms) { unsubRooms(); unsubRooms=null; }
+}
+
+async function loadHotelCfg() {
+  try {
+    const snap = await getDoc(doc(DB,'config','hotel'));
+    if (snap.exists()) hotelCfg = snap.data();
+    // Also cache firebase config to localStorage so next visit skips setup
+    const fbSnap = await getDoc(doc(DB,'config','firebase'));
+    if (fbSnap.exists()) saveLocalCfg(fbSnap.data());
+  } catch(e){}
+}
+
+async function loadUserRole() {
+  try {
+    const snap = await getDoc(doc(DB,'users',currentUser.uid));
+    if (snap.exists()) userRole = snap.data().role || 'admin';
+    else userRole = 'admin'; // default: admin if no record (first user)
+  } catch(e) { userRole = 'admin'; }
+}
+
+// ── HOUSEKEEPING APP ──────────────────────────────────────────────────
+function showHousekeepingApp() {
+  hide('authScreen');
+  const today = todayStr();
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  const tomStr = tomorrow.toISOString().split('T')[0];
+
+  const arriving = bookings.filter(b=>b.checkIn===today&&b.status!=='checked-out'&&b.status!=='cancelled');
+  const arrivingTomorrow = bookings.filter(b=>b.checkIn===tomStr&&b.status!=='cancelled');
+  const needsCleaning = rooms.filter(r=>r.needsCleaning);
+  const occupied = bookings.filter(b=>b.status==='checked-in');
+
+  document.body.innerHTML = `
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:'Plus Jakarta Sans',sans-serif;background:#f4f1ec;color:#1c1915;padding-bottom:2rem;}
+      .hk-header{background:#fff;border-bottom:1px solid #e5e0d8;padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;}
+      .hk-title{font-family:'Fraunces',serif;font-size:18px;color:#1a5276;}
+      .hk-sub{font-size:11px;color:#7a7167;}
+      .hk-signout{font-size:12px;color:#7a7167;background:none;border:1px solid #e5e0d8;border-radius:8px;padding:5px 10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
+      .hk-body{max-width:600px;margin:0 auto;padding:1rem;}
+      .hk-section{background:#fff;border:1px solid #e5e0d8;border-radius:14px;padding:1.25rem;margin-bottom:.75rem;}
+      .hk-section-title{font-size:14px;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+      .hk-count{background:#d6e8f5;color:#0e3350;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;}
+      .hk-guest{padding:10px 0;border-bottom:1px solid #e5e0d8;}
+      .hk-guest:last-child{border-bottom:none;}
+      .hk-guest-name{font-size:15px;font-weight:600;margin-bottom:4px;}
+      .hk-guest-meta{font-size:12px;color:#7a7167;line-height:1.7;}
+      .hk-room-tag{display:inline-block;background:#d6e8f5;color:#0e3350;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;margin-right:4px;}
+      .hk-btn{padding:7px 14px;border-radius:9px;border:1px solid #e5e0d8;background:#fff;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;font-weight:500;}
+      .hk-btn-green{background:#1e6b45;color:#fff;border-color:#1e6b45;}
+      .hk-btn-amber{background:#d4860d;color:#fff;border-color:#d4860d;}
+      .hk-btn-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+      .hk-room-card{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e5e0d8;}
+      .hk-room-card:last-child{border-bottom:none;}
+      .hk-empty{text-align:center;padding:1.5rem;color:#7a7167;font-size:13px;}
+      .hk-badge-green{background:#d4eddf;color:#1e6b45;font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;}
+      .hk-badge-amber{background:#fdf0d5;color:#7a4f0d;font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;}
+    </style>
+    <div class="hk-header">
+      <div>
+        <div class="hk-title">🛏️ Housekeeping</div>
+        <div class="hk-sub">${hotelCfg.hotelName||'Hotel'} · ${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+      </div>
+      <button class="hk-signout" onclick="location.reload()">Sign out</button>
+    </div>
+    <div class="hk-body">
+
+      <div class="hk-section">
+        <div class="hk-section-title">📅 Arriving today <span class="hk-count">${arriving.length}</span></div>
+        ${arriving.length ? arriving.map(b=>`
+          <div class="hk-guest" id="hkg-${b._id}">
+            <div class="hk-guest-name">${esc(b.guestName)}</div>
+            <div class="hk-guest-meta">
+              <span class="hk-room-tag">${esc(b.room||'')}</span>
+              ${esc(b.roomType||'')} · ${esc(b.adults||1)} adult${(b.adults||1)!=1?'s':''}${b.kids>0?', '+b.kids+' kid'+(b.kids>1?'s':''):''}
+            </div>
+            <div class="hk-guest-meta">📞 <a href="tel:${esc(b.phone)}" style="color:#1a5276">${esc(b.phone)}</a></div>
+            <div class="hk-guest-meta">Check-out: ${fmtDate(b.checkOut)}</div>
+            <div class="hk-btn-row">
+              ${b.keyGiven ? '<span class="hk-badge-green">✓ Key given</span>' :
+                `<button class="hk-btn hk-btn-green" onclick="hkGiveKey('${b._id}')">🗝️ Mark key given</button>`}
+            </div>
+          </div>`).join('') : '<div class="hk-empty">No arrivals today</div>'}
+      </div>
+
+      <div class="hk-section">
+        <div class="hk-section-title">📆 Arriving tomorrow <span class="hk-count">${arrivingTomorrow.length}</span></div>
+        ${arrivingTomorrow.length ? arrivingTomorrow.map(b=>`
+          <div class="hk-guest">
+            <div class="hk-guest-name">${esc(b.guestName)}</div>
+            <div class="hk-guest-meta"><span class="hk-room-tag">${esc(b.room||'')}</span> ${esc(b.roomType||'')} · ${esc(b.adults||1)} adult${(b.adults||1)!=1?'s':''}${b.kids>0?', '+b.kids+' kid'+(b.kids>1?'s':''):''}</div>
+            <div class="hk-guest-meta">📞 <a href="tel:${esc(b.phone)}" style="color:#1a5276">${esc(b.phone)}</a></div>
+          </div>`).join('') : '<div class="hk-empty">No arrivals tomorrow</div>'}
+      </div>
+
+      <div class="hk-section">
+        <div class="hk-section-title">🧹 Rooms needing cleaning <span class="hk-count">${needsCleaning.length}</span></div>
+        ${needsCleaning.length ? needsCleaning.map(r=>`
+          <div class="hk-room-card">
+            <div>
+              <div style="font-weight:600;font-size:14px">${esc(r.name)}</div>
+              <div style="font-size:12px;color:#7a7167">${esc(r.type)}</div>
+            </div>
+            <button class="hk-btn hk-btn-green" onclick="hkMarkClean('${r.id}',this)">✓ Mark clean</button>
+          </div>`).join('') : '<div class="hk-empty">✅ All rooms are clean!</div>'}
+      </div>
+
+      <div class="hk-section">
+        <div class="hk-section-title">🚪 Currently occupied <span class="hk-count">${occupied.length}</span></div>
+        ${occupied.length ? occupied.map(b=>`
+          <div class="hk-guest">
+            <div class="hk-guest-name">${esc(b.guestName)}</div>
+            <div class="hk-guest-meta"><span class="hk-room-tag">${esc(b.room||'')}</span> Checking out: ${fmtDate(b.checkOut)}</div>
+          </div>`).join('') : '<div class="hk-empty">No guests currently checked in</div>'}
+      </div>
+
+    </div>`;
+
+  window.hkGiveKey = async (id) => {
+    await updateDoc(doc(DB,'bookings',id),{keyGiven:true, keyGivenAt:new Date().toISOString(), keyGivenBy:currentUser?.email||''});
+    const el = document.getElementById('hkg-'+id);
+    if (el) el.querySelector('.hk-btn-row').innerHTML='<span class="hk-badge-green">✓ Key given</span>';
+  };
+  window.hkMarkClean = async (id, btn) => {
+    await updateDoc(doc(DB,'rooms',id),{needsCleaning:false});
+    btn.closest('.hk-room-card').remove();
+  };
+}
+
+// ── KITCHEN APP ───────────────────────────────────────────────────────
+function showKitchenApp() {
+  hide('authScreen');
+  document.body.innerHTML = `
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:'Plus Jakarta Sans',sans-serif;background:#1c1915;color:#f4f1ec;min-height:100vh;padding-bottom:2rem;}
+      .kt-header{background:#2a2520;border-bottom:1px solid #3a3530;padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;}
+      .kt-title{font-family:'Fraunces',serif;font-size:18px;color:#f0c96a;}
+      .kt-sub{font-size:11px;color:#9a8f80;}
+      .kt-signout{font-size:12px;color:#9a8f80;background:none;border:1px solid #3a3530;border-radius:8px;padding:5px 10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;}
+      .kt-body{max-width:600px;margin:0 auto;padding:1rem;}
+      .kt-empty{text-align:center;padding:4rem 1rem;color:#7a7167;}
+      .kt-empty-icon{font-size:48px;margin-bottom:1rem;}
+      .order-card{background:#2a2520;border:1px solid #3a3530;border-radius:14px;padding:1.25rem;margin-bottom:.75rem;}
+      .order-card.new{border-left:4px solid #f0c96a;}
+      .order-card.preparing{border-left:4px solid #d4860d;}
+      .order-card.ready{border-left:4px solid #1e6b45;}
+      .order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;}
+      .order-room{font-size:18px;font-weight:700;color:#f0c96a;}
+      .order-name{font-size:13px;color:#9a8f80;margin-top:2px;}
+      .order-time{font-size:12px;color:#9a8f80;}
+      .order-item{padding:6px 0;border-bottom:1px solid #3a3530;font-size:14px;display:flex;justify-content:space-between;}
+      .order-item:last-child{border-bottom:none;}
+      .order-notes{font-size:12px;color:#f0c96a;background:#3a3020;border-radius:8px;padding:8px 10px;margin-top:8px;}
+      .order-btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+      .kt-btn{padding:9px 16px;border-radius:9px;border:none;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;font-weight:600;}
+      .kt-btn-yellow{background:#f0c96a;color:#1c1915;}
+      .kt-btn-green{background:#1e6b45;color:#fff;}
+      .kt-btn-gray{background:#3a3530;color:#9a8f80;}
+      .status-chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;}
+      .chip-new{background:#3a3020;color:#f0c96a;}
+      .chip-preparing{background:#3a2a10;color:#d4860d;}
+      .chip-ready{background:#1a3a20;color:#4daa70;}
+      .tab-row{display:flex;gap:0;background:#2a2520;border-radius:12px;padding:3px;margin-bottom:1rem;}
+      .kt-tab{flex:1;padding:8px;text-align:center;border-radius:9px;border:none;background:none;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;color:#9a8f80;}
+      .kt-tab.on{background:#3a3530;color:#f4f1ec;font-weight:600;}
+    </style>
+    <div class="kt-header">
+      <div>
+        <div class="kt-title">🍳 Kitchen Orders</div>
+        <div class="kt-sub" id="ktSub">${hotelCfg.hotelName||'Hotel'} · Loading...</div>
+      </div>
+      <button class="kt-signout" onclick="location.reload()">Sign out</button>
+    </div>
+    <div class="kt-body">
+      <div class="tab-row">
+        <button class="kt-tab on" id="ktTabActive" onclick="ktShowTab('active')">🔴 Active orders</button>
+        <button class="kt-tab" id="ktTabDone" onclick="ktShowTab('done')">✅ Done today</button>
+      </div>
+      <div id="ktOrdersContainer"><div class="kt-empty"><div class="kt-empty-icon">🍽️</div>Waiting for orders...</div></div>
+    </div>`;
+
+  let ktActiveTab = 'active';
+  let ktOrders = [];
+
+  // Live orders listener
+  onSnapshot(query(collection(DB,'orders'), orderBy('createdAt','desc')), snap => {
+    ktOrders = snap.docs.map(d=>({...d.data(),_id:d.id}));
+    const now = new Date(); const todayD = now.toISOString().split('T')[0];
+    // Update sub with count
+    const active = ktOrders.filter(o=>o.status!=='done'&&o.status!=='dismissed');
+    document.getElementById('ktSub').textContent = hotelCfg.hotelName+' · '+active.length+' active order'+(active.length!=1?'s':'');
+    ktRenderOrders();
+  });
+
+  window.ktShowTab = (tab) => {
+    ktActiveTab = tab;
+    document.getElementById('ktTabActive').className = 'kt-tab'+(tab==='active'?' on':'');
+    document.getElementById('ktTabDone').className = 'kt-tab'+(tab==='done'?' on':'');
+    ktRenderOrders();
+  };
+
+  window.ktRenderOrders = () => {
+    const todayD = new Date().toISOString().split('T')[0];
+    let list = ktActiveTab==='active'
+      ? ktOrders.filter(o=>o.status!=='done'&&o.status!=='dismissed')
+      : ktOrders.filter(o=>o.status==='done'&&o.createdAt?.startsWith(todayD));
+    const el = document.getElementById('ktOrdersContainer');
+    if (!list.length) {
+      el.innerHTML = `<div class="kt-empty"><div class="kt-empty-icon">${ktActiveTab==='active'?'✅':'📭'}</div>${ktActiveTab==='active'?'No pending orders — all clear!':'No completed orders today'}</div>`;
+      return;
+    }
+    el.innerHTML = list.map(o=>{
+      const chipClass = o.status==='preparing'?'chip-preparing':o.status==='ready'?'chip-ready':'chip-new';
+      const chipLabel = o.status==='preparing'?'Preparing':o.status==='ready'?'Ready to serve':'New order';
+      const t = new Date(o.createdAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      return `<div class="order-card ${o.status||'new'}">
+        <div class="order-header">
+          <div>
+            <div class="order-room">Room ${esc(o.roomNo||'?')}</div>
+            <div class="order-name">${esc(o.guestName||'Guest')}</div>
+          </div>
+          <div style="text-align:right">
+            <span class="status-chip ${chipClass}">${chipLabel}</span>
+            <div class="order-time">${t}</div>
+          </div>
+        </div>
+        ${o.items.map(i=>`<div class="order-item"><span>${esc(i.name)} ×${i.qty}</span><span style="color:#f0c96a">Rs ${fmt(i.price*i.qty)}</span></div>`).join('')}
+        <div class="order-item" style="font-weight:700;color:#f0c96a;border-top:1px solid #3a3530;margin-top:4px;padding-top:8px"><span>Total</span><span>Rs ${fmt(o.total)}</span></div>
+        ${o.notes?`<div class="order-notes">📝 ${esc(o.notes)}</div>`:''}
+        ${ktActiveTab==='active'?`<div class="order-btn-row">
+          ${o.status!=='preparing'&&o.status!=='ready'?`<button class="kt-btn kt-btn-yellow" onclick="ktUpdate('${o._id}','preparing')">👨‍🍳 Start preparing</button>`:''}
+          ${o.status==='preparing'?`<button class="kt-btn kt-btn-green" onclick="ktUpdate('${o._id}','ready')">🔔 Ready to serve</button>`:''}
+          ${o.status==='ready'?`<button class="kt-btn kt-btn-green" onclick="ktUpdate('${o._id}','done')">✅ Delivered</button>`:''}
+          <button class="kt-btn kt-btn-gray" onclick="ktUpdate('${o._id}','done')">✕ Dismiss</button>
+        </div>`:''}
+      </div>`;
+    }).join('');
+  };
+
+  window.ktUpdate = async (id, status) => {
+    await updateDoc(doc(DB,'orders',id),{status, updatedAt:new Date().toISOString()});
+  };
+}
+
+async function saveHotelCfgRemote(data) {
+  await setDoc(doc(DB,'config','hotel'), data, {merge:true});
+  hotelCfg = {...hotelCfg,...data};
+}
+
+// ── SHOW APP ──────────────────────────────────────────────────────────
+function showApp() {
+  hide('authScreen'); hide('firebaseSetup');
+  document.getElementById('appScreen').style.display='block';
+  document.getElementById('bottomNav').style.display='flex';
+  document.getElementById('topbarTitle').textContent = hotelCfg.hotelName||'Hotel Manager';
+  document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('userLabel').textContent = (currentUser?.email||'').split('@')[0];
+  loadSettingsForm();
+  renderCalendar();
+  startMenuListeners();
+  initNotifications();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────
+window.showTab = name => {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('nb-'+name).classList.add('active');
+  if (name==='calendar') renderCalendar();
+  if (name==='orders') { renderMenuItems(); }
+};
+
+function renderAll() {
+  renderDashboard(); renderBookings(); renderRooms();
+  renderPayments(); renderCalendar();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────
+function renderDashboard() {
+  const today = todayStr();
+  const arriving = bookings.filter(b=>b.checkIn===today&&b.status!=='checked-out'&&b.status!=='cancelled');
+  const occupied = bookings.filter(b=>b.status==='checked-in');
+  const pend = bookings.filter(b=>b.advanceStatus==='pending'&&b.status!=='cancelled');
+  set('st-today', arriving.length);
+  set('st-occupied', occupied.length);
+  set('st-pending', pend.length);
+  set('todayList', arriving.length ? arriving.map(miniCard).join('') : emptyMsg('🎉','No arrivals today'));
+  set('pendingList', pend.length ? pend.map(miniCard).join('') : emptyMsg('✅','All advances received'));
+  const upc = bookings.filter(b=>{
+    const diff=(new Date(b.checkIn)-new Date(today))/86400000;
+    return diff>0&&diff<=7&&b.status!=='cancelled';
+  });
+  set('upcomingList', upc.length ? upc.map(miniCard).join('') : emptyMsg('📆','No upcoming bookings'));
+  renderCheckoutsToday();
+  renderHousekeeping();
+}
+
+function miniCard(b) {
+  return `<div class="booking-item" onclick='openDetail("${b._id}")'>
+    <div class="booking-top"><div class="booking-name">${esc(b.guestName)}</div>${statusBadge(b)}</div>
+    <div class="booking-meta">${esc(b.room||'')} · ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</div>
+    <div class="booking-meta">📞 ${esc(b.phone||'')} &nbsp;${sourceChip(b.source)}</div>
+  </div>`;
+}
+
+// ── BOOKINGS ──────────────────────────────────────────────────────────
+function renderBookings() {
+  const q = document.getElementById('searchInput')?.value?.toLowerCase()||'';
+  const list = bookings.filter(b=>{
+    if (activeFilter==='pending-advance') return b.advanceStatus==='pending'&&b.status!=='cancelled';
+    if (activeFilter==='hotel') return (b.property||'hotel')==='hotel'&&b.status!=='cancelled';
+    if (activeFilter==='villa') return b.property==='villa'&&b.status!=='cancelled';
+    if (activeFilter!=='all'&&b.status!==activeFilter) return false;
+    if (q) return (b.guestName||'').toLowerCase().includes(q)||(b.phone||'').includes(q);
+    return true;
+  });
+  const el = document.getElementById('bookingList');
+  if (!list.length) { el.innerHTML=emptyMsg('📋','No bookings found'); return; }
+  el.innerHTML = list.map(b=>{
+    const nights = calcNights(b.checkIn,b.checkOut);
+    return `<div class="booking-item" onclick='openDetail("${b._id}")'>
+      <div class="booking-top"><div class="booking-name">${esc(b.guestName)}</div>${statusBadge(b)}</div>
+      <div class="booking-meta">🚪 ${esc(b.room||'')} · ${nights}n · ${esc(b.adults||1)} adult${(b.adults||1)!=1?'s':''}${b.kids>0?' · '+b.kids+' kid'+(b.kids>1?'s':''):''}</div>
+      <div class="booking-meta">📅 ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</div>
+      <div class="booking-footer">
+        <span style="display:flex;gap:6px;align-items:center">${sourceChip(b.source)}<span class="booking-meta">📞 ${esc(b.phone||'')}</span></span>
+        <span style="font-size:13px;font-weight:600;color:var(--accent)">Rs ${fmt(b.totalAmount)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.setFilter = (f,el) => {
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on'); renderBookings();
+};
+
+// ── CALENDAR ──────────────────────────────────────────────────────────
+function renderCalendar() {
+  const year = calDate.getFullYear(), month = calDate.getMonth();
+  document.getElementById('calMonth').textContent = calDate.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const firstDay = new Date(year,month,1).getDay();
+  const daysInMonth = new Date(year,month+1,0).getDate();
+  const today = todayStr();
+
+  // Build maps: checkins, checkouts, stays per date
+  const checkIns = {}, checkOuts = {}, stays = {};
+  bookings.forEach(b=>{
+    if (b.status==='cancelled') return;
+    // checkin date
+    checkIns[b.checkIn] = (checkIns[b.checkIn]||0)+1;
+    // checkout date
+    checkOuts[b.checkOut] = (checkOuts[b.checkOut]||0)+1;
+    // stay dates (between checkin and checkout exclusive)
+    let d = new Date(b.checkIn+'T00:00:00');
+    d.setDate(d.getDate()+1);
+    const end = new Date(b.checkOut+'T00:00:00');
+    while(d<end){
+      const ds = d.toISOString().split('T')[0];
+      stays[ds] = (stays[ds]||0)+1;
+      d.setDate(d.getDate()+1);
+    }
+  });
+
+  let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-day-header">${d}</div>`).join('');
+  for (let i=0;i<firstDay;i++) html+=`<div class="cal-day empty"></div>`;
+  for (let d=1;d<=daysInMonth;d++) {
+    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = ds===today;
+    const isSel = ds===calSelectedDate;
+    const hasCI = checkIns[ds]>0;
+    const hasCO = checkOuts[ds]>0;
+    const hasStay = stays[ds]>0;
+    const total = (checkIns[ds]||0)+(checkOuts[ds]||0)+(stays[ds]||0);
+    let cls = 'cal-day';
+    if (isToday) cls+=' today';
+    if (isSel) cls+=' selected';
+    else if (hasCI && hasCO) cls+=' has-checkin has-checkout';
+    else if (hasCI) cls+=' has-checkin';
+    else if (hasCO) cls+=' has-checkout';
+    else if (hasStay) cls+=' has-stay';
+    const countLabel = total>0 ? `<div class="cal-day-count">${total}</div>` : '';
+    html+=`<div class="${cls}" onclick="selectCalDate('${ds}')">${d}${countLabel}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+
+  // Legend
+  const legendEl = document.getElementById('calLegend');
+  if (legendEl) legendEl.innerHTML = `
+    <span><i style="background:#d4eddf;border:1px solid #a8d8bc"></i>Check-in</span>
+    <span><i style="background:#fde8e8;border:1px solid #f0b8b8"></i>Check-out</span>
+    <span><i style="background:#d6e8f5;border:1px solid #a0c8e8"></i>Staying</span>`;
+
+  renderCalBookings();
+}
+
+window.selectCalDate = (d) => {
+  calSelectedDate = calSelectedDate===d ? null : d;
+  renderCalendar();
+};
+
+function renderCalBookings() {
+  const el = document.getElementById('calBookings');
+  if (!calSelectedDate) { el.innerHTML='<div style="font-size:13px;color:var(--muted);text-align:center;padding:1rem">Tap a date to see bookings</div>'; return; }
+  const day = bookings.filter(b=>{
+    if (b.status==='cancelled') return false;
+    return b.checkIn<=calSelectedDate && b.checkOut>calSelectedDate;
+  });
+  const label = new Date(calSelectedDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  if (!day.length) { el.innerHTML=`<div class="card card-sm"><div style="font-size:13px;font-weight:600;margin-bottom:8px">${label}</div>${emptyMsg('🏖️','No bookings on this day')}</div>`; return; }
+  el.innerHTML=`<div class="card card-sm"><div style="font-size:13px;font-weight:600;margin-bottom:10px">${label} — ${day.length} booking${day.length>1?'s':''}</div>${day.map(miniCard).join('')}</div>`;
+}
+
+window.calPrev = () => { calDate.setMonth(calDate.getMonth()-1); renderCalendar(); };
+window.calNext = () => { calDate.setMonth(calDate.getMonth()+1); renderCalendar(); };
+
+// ── ROOMS ──────────────────────────────────────────────────────────────
+window.setPropTab = tab => {
+  activePropTab=tab;
+  document.getElementById('ptHotel').className='prop-tab'+(tab==='hotel'?' on hotel':'');
+  document.getElementById('ptVilla').className='prop-tab'+(tab==='villa'?' on villa':'');
+  renderRooms();
+};
+
+function renderRooms() {
+  const filtered = rooms.filter(r=>(r.property||'hotel')===activePropTab);
+  const el = document.getElementById('roomGrid');
+  if (!filtered.length) { el.innerHTML=emptyMsg('🚪','No rooms assigned to this section yet. Configure in Settings.'); return; }
+  el.innerHTML = filtered.map(r=>{
+    const cur = bookings.find(b=>b.roomId===r.id&&b.status==='checked-in');
+    const st = r.manualStatus==='maintenance'?'maintenance':cur?'occupied':'available';
+    return `<div class="room-card ${st}" onclick='openRoomDetail("${r.id}")'>
+      <div class="room-name">${esc(r.name)}</div>
+      <div class="room-type">${esc(r.type)}</div>
+      <div class="room-prop ${r.property||'hotel'}">${(r.property||'hotel').toUpperCase()}</div>
+      ${cur?`<div class="room-guest">👤 ${esc(cur.guestName)}<br><span style="font-size:11px;color:var(--muted)">Until ${fmtDate(cur.checkOut)}</span></div>`:''}
+      <div style="margin-top:8px"><span class="badge ${st==='available'?'badge-green':st==='occupied'?'badge-red':'badge-amber'}">${st}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ── PAYMENTS ───────────────────────────────────────────────────────────
+function renderPayments() {
+  const active = bookings.filter(b=>b.status!=='cancelled');
+  const tot = active.reduce((s,b)=>s+(+b.totalAmount||0),0);
+  const adv = active.reduce((s,b)=>s+(b.advanceStatus==='received'?+b.advanceAmount||0:0),0);
+  const bal = active.reduce((s,b)=>s+(+b.balanceDue||0),0);
+  set('pay-total','Rs '+fmt(tot));
+  set('pay-advances','Rs '+fmt(adv));
+  set('pay-balance','Rs '+fmt(bal));
+  const el = document.getElementById('paymentList');
+  if (!active.length){el.innerHTML=emptyMsg('💰','No records yet');return;}
+  el.innerHTML = active.map(b=>
+    `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:14px;font-weight:600">${esc(b.guestName)}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--accent)">Rs ${fmt(b.totalAmount)}</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">${fmtDate(b.checkIn)} · ${esc(b.room||'')} ${sourceChip(b.source)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${b.advanceStatus==='received'?'<span class="badge badge-green">Advance ✓</span>':'<span class="badge badge-amber">Advance pending</span>'}
+        ${+b.balanceDue>0?`<span class="badge badge-red">Balance Rs ${fmt(b.balanceDue)}</span>`:'<span class="badge badge-green">Fully paid ✓</span>'}
+        ${b.status==='checked-out'?'<span class="badge badge-gray">Checked out</span>':''}
+      </div>
+    </div>`
+  ).join('');
+}
+
+// ── NEW BOOKING ────────────────────────────────────────────────────────
+window.openNewBooking = () => {
+  // Step 1: Ask Hotel or Villa
+  showModal(`
+    <div class="modal-title">New Booking</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:1.25rem">What type of booking?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div onclick="openBookingForm('hotel')" style="cursor:pointer;border:2px solid var(--accent);border-radius:14px;padding:1.5rem;text-align:center;background:var(--accent-l)">
+        <div style="font-size:32px;margin-bottom:8px">🏨</div>
+        <div style="font-weight:600;color:var(--accent-t);font-size:15px">Hotel Room</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Single room</div>
+      </div>
+      <div onclick="openBookingForm('villa')" style="cursor:pointer;border:2px solid var(--purple);border-radius:14px;padding:1.5rem;text-align:center;background:var(--purple-l)">
+        <div style="font-size:32px;margin-bottom:8px">🌴</div>
+        <div style="font-weight:600;color:var(--purple);font-size:15px">Villa</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Multiple rooms</div>
+      </div>
+    </div>`);
+};
+
+window.openBookingForm = (bookingType) => {
+  const isVilla = bookingType === 'villa';
+  const roomOpts = rooms.map(r=>`<option value="${r.id}">[${(r.property||'hotel').toUpperCase()}] ${r.name} – ${r.type}</option>`).join('');
+  // For villa: show all 8 rooms as checkboxes with availability
+  const villaRoomCheckboxes = rooms.map(r => {
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;background:var(--surface)">
+      <input type="checkbox" class="villa-room-cb" value="${r.id}" style="width:18px;height:18px;cursor:pointer;accent-color:var(--purple)"/>
+      <div>
+        <div style="font-weight:600;font-size:14px">${esc(r.name)}</div>
+        <div style="font-size:12px;color:var(--muted)">${esc(r.type)} · ${(r.property||'hotel').toUpperCase()}</div>
+      </div>
+    </label>`;
+  }).join('');
+
+  showModal(`
+    <button class="modal-close" onclick="openNewBooking()">←</button>
+    <div class="modal-title">${isVilla ? '🌴 Villa Booking' : '🏨 Hotel Room Booking'}</div>
+    <div class="fw"><div class="field-label">Guest full name</div><input type="text" id="nb-name" placeholder="e.g. Kamal Perera"/></div>
+    <div class="fw"><div class="field-label">Phone number</div><input type="tel" id="nb-phone" placeholder="077 123 4567"/></div>
+    <div class="fw"><div class="field-label">Booking source</div>
+      <select id="nb-source">
+        <option value="facebook">📘 Facebook</option>
+        <option value="bookingcom">🌐 Booking.com</option>
+        <option value="phone">📞 Phone call</option>
+        <option value="whatsapp">💬 WhatsApp</option>
+        <option value="walkin">🚶 Walk-in</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Check-in</div><input type="date" id="nb-checkin"/></div>
+      <div class="fw"><div class="field-label">Check-out</div><input type="date" id="nb-checkout"/></div>
+    </div>
+    ${isVilla ? `
+    <div class="fw">
+      <div class="field-label">Select rooms for this villa booking</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Tick all rooms included. Each will be blocked for the booked dates.</div>
+      <div id="villa-room-list">${villaRoomCheckboxes}</div>
+      <div id="villa-conflict-warn" style="font-size:12px;color:var(--red);margin-top:6px"></div>
+    </div>` : `
+    <div class="fw"><div class="field-label">Room</div><select id="nb-room">${roomOpts}</select></div>`}
+    <div class="fw"><div class="field-label">Number of adults</div>
+      <div class="stepper">
+        <button class="stepper-btn" onclick="step('nb-adults',-1,1)">−</button>
+        <div class="stepper-val" id="nb-adults-val">2</div>
+        <input type="hidden" id="nb-adults" value="2"/>
+        <button class="stepper-btn" onclick="step('nb-adults',1,10)">+</button>
+      </div>
+    </div>
+    <div class="fw"><div class="field-label">Number of kids</div>
+      <div class="stepper">
+        <button class="stepper-btn" onclick="step('nb-kids',-1,0)">−</button>
+        <div class="stepper-val" id="nb-kids-val">0</div>
+        <input type="hidden" id="nb-kids" value="0"/>
+        <button class="stepper-btn" onclick="step('nb-kids',1,10)">+</button>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Total amount (Rs)</div><input type="number" id="nb-total" placeholder="0" oninput="calcNightlyRate()"/></div>
+      <div class="fw"><div class="field-label">Advance required (Rs)</div><input type="number" id="nb-advance" placeholder="0"/></div>
+    </div>
+    <div id="nb-rate-hint" style="font-size:12px;margin-bottom:10px;min-height:16px"></div>
+    <div class="fw"><div class="field-label">Notes / special requests</div><textarea id="nb-notes" placeholder="Any special requests..."></textarea></div>
+    <button class="btn-big" id="nb-saveBtn" onclick="saveNewBooking('${bookingType}')">Save Booking</button>
+    <div class="status err" id="nb-status"></div>`);
+
+  const tom = new Date(); tom.setDate(tom.getDate()+1);
+  document.getElementById('nb-checkin').value = todayStr();
+  document.getElementById('nb-checkout').value = tom.toISOString().split('T')[0];
+  document.getElementById('nb-checkin').addEventListener('change', () => { calcNightlyRate(); if(isVilla) checkVillaConflicts(); });
+  document.getElementById('nb-checkout').addEventListener('change', () => { calcNightlyRate(); if(isVilla) checkVillaConflicts(); });
+  if (isVilla) {
+    document.querySelectorAll('.villa-room-cb').forEach(cb => cb.addEventListener('change', checkVillaConflicts));
+  }
+};
+
+window.checkVillaConflicts = () => {
+  const ci = document.getElementById('nb-checkin')?.value;
+  const co = document.getElementById('nb-checkout')?.value;
+  const warn = document.getElementById('villa-conflict-warn');
+  if (!ci||!co||!warn) return;
+  const selected = Array.from(document.querySelectorAll('.villa-room-cb:checked')).map(cb=>cb.value);
+  const conflicts = [];
+  selected.forEach(rid => {
+    const c = checkRoomConflict(rid, ci, co, null);
+    if (c) {
+      const r = rooms.find(x=>x.id===rid);
+      conflicts.push(`${r?.name||rid}: booked by ${c.guestName} (${fmtDate(c.checkIn)}–${fmtDate(c.checkOut)})`);
+    }
+  });
+  warn.textContent = conflicts.length ? '⚠️ Conflicts: '+conflicts.join(', ') : '';
+};
+
+window.step = (id, delta, min) => {
+  const inp = document.getElementById(id);
+  const newVal = Math.max(min, (+inp.value||0)+delta);
+  inp.value = newVal;
+  document.getElementById(id+'-val').textContent = newVal;
+};
+
+window.saveNewBooking = async (bookingType) => {
+  const name = document.getElementById('nb-name').value.trim();
+  const phone = document.getElementById('nb-phone').value.trim();
+  const checkIn = document.getElementById('nb-checkin').value;
+  const checkOut = document.getElementById('nb-checkout').value;
+  const adults = +document.getElementById('nb-adults').value||1;
+  const kids = +document.getElementById('nb-kids').value||0;
+  const total = +document.getElementById('nb-total').value||0;
+  const advance = +document.getElementById('nb-advance').value||0;
+  const source = document.getElementById('nb-source').value;
+  const notes = document.getElementById('nb-notes').value.trim();
+  const isVilla = bookingType==='villa';
+
+  if (!name||!phone||!checkIn||!checkOut){document.getElementById('nb-status').textContent='Fill in all required fields.';return;}
+  if (checkOut<=checkIn){document.getElementById('nb-status').textContent='Check-out must be after check-in.';return;}
+
+  // Villa: get selected rooms
+  let villaRoomIds = [];
+  if (isVilla) {
+    villaRoomIds = Array.from(document.querySelectorAll('.villa-room-cb:checked')).map(cb=>cb.value);
+    if (villaRoomIds.length===0){document.getElementById('nb-status').textContent='Please select at least one room for the villa booking.';return;}
+    // Check conflicts for all selected rooms
+    for (const rid of villaRoomIds) {
+      const c = checkRoomConflict(rid, checkIn, checkOut, null);
+      if (c) {
+        const r = rooms.find(x=>x.id===rid);
+        document.getElementById('nb-status').textContent=`⚠️ ${r?.name||rid} is already booked by ${c.guestName} (${fmtDate(c.checkIn)}–${fmtDate(c.checkOut)})`;
+        return;
+      }
+    }
+  } else {
+    // Hotel: single room conflict check
+    const roomId = document.getElementById('nb-room').value;
+    const conflict = checkRoomConflict(roomId, checkIn, checkOut, null);
+    if (conflict) {
+      document.getElementById('nb-status').textContent='⚠️ Room already booked for '+conflict.guestName+' ('+fmtDate(conflict.checkIn)+' – '+fmtDate(conflict.checkOut)+')';
+      return;
+    }
+  }
+
+  const btn = document.getElementById('nb-saveBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Saving...';
+
+  try {
+    let firstRef = null;
+    if (isVilla) {
+      // Create one booking per room, all linked by a villaGroupId
+      const villaGroupId = 'VG-'+Date.now();
+      const villaRoomNames = villaRoomIds.map(id=>rooms.find(r=>r.id===id)?.name||id).join(', ');
+      for (let i=0; i<villaRoomIds.length; i++) {
+        const rid = villaRoomIds[i];
+        const room = rooms.find(r=>r.id===rid);
+        const ref = await addDoc(collection(DB,'bookings'),{
+          guestName:name, phone, checkIn, checkOut,
+          roomId:rid, room:room?.name||'', roomType:room?.type||'',
+          property:'villa', bookingType:'villa',
+          villaGroupId, villaRoomNames,
+          adults, kids, source,
+          totalAmount: i===0 ? total : 0, // total only on first room
+          advanceAmount: i===0 ? advance : 0,
+          advanceStatus:'pending', balanceDue: i===0 ? total : 0,
+          status:'confirmed', notes, idDetails:'',
+          createdAt:new Date().toISOString(),
+          createdBy:currentUser?.email||'',
+        });
+        if (i===0) firstRef = ref;
+      }
+    } else {
+      const roomId = document.getElementById('nb-room').value;
+      const room = rooms.find(r=>r.id===roomId);
+      firstRef = await addDoc(collection(DB,'bookings'),{
+        guestName:name, phone, checkIn, checkOut,
+        roomId, room:room?.name||'', roomType:room?.type||'',
+        property:room?.property||'hotel', bookingType:'hotel',
+        adults, kids, source,
+        totalAmount:total, advanceAmount:advance,
+        advanceStatus:'pending', balanceDue:total,
+        status:'confirmed', notes, idDetails:'',
+        createdAt:new Date().toISOString(),
+        createdBy:currentUser?.email||'',
+      });
+    }
+
+    closeModal();
+    const prev = findPreviousBookings(phone, firstRef.id);
+    if (prev.length > 0) {
+      setTimeout(()=>{
+        showModal(`
+          <div class="modal-title">🔁 Returning guest!</div>
+          <div style="font-size:14px;color:var(--muted);margin-bottom:1rem;line-height:1.6">
+            <b>${esc(name)}</b> has stayed <b>${prev.length}</b> time${prev.length>1?'s':''} before.
+          </div>
+          ${prev.slice(0,3).map(p=>`
+            <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <div style="font-weight:600">${fmtDate(p.checkIn)} – ${fmtDate(p.checkOut)}</div>
+              <div style="color:var(--muted)">${esc(p.room||'')} · Rs ${fmt(p.totalAmount)} · ${statusBadge(p)}</div>
+            </div>`).join('')}
+          <div class="btn-row" style="margin-top:1rem">
+            <button class="btn-big btn" onclick="openDetail('${firstRef.id}')">Open new booking →</button>
+            <button class="btn btn-wa" style="flex:1" onclick='sendMenuLink("${firstRef.id}");closeModal()'>🍽️ Send menu link</button>
+          </div>`);
+      }, 350);
+    } else {
+      setTimeout(()=>{
+        openDetail(firstRef.id);
+        // Small delay then prompt menu link
+        setTimeout(()=>{
+          const newB = bookings.find(x=>x._id===firstRef.id);
+          if (!newB) return;
+          const menuUrl = window.location.origin + window.location.pathname.replace('index.html','').replace(/\/+$/,'/') + 'menu.html';
+          showModal(`
+            <div class="modal-title">📱 Send menu link?</div>
+            <div style="font-size:14px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6">
+              Would you like to send the food ordering menu link to <b>${esc(newB?.guestName||'')}</b> on WhatsApp?<br/>
+              <span style="font-size:12px">Guests can order room service 7am–9pm.</span>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-wa" style="flex:1" onclick='sendMenuLink("${firstRef.id}");closeModal()'>🍽️ Yes, send menu link</button>
+              <button class="btn" style="flex:1" onclick="closeModal()">Skip</button>
+            </div>`);
+        }, 600);
+      }, 300);
+    }
+  } catch(e){
+    document.getElementById('nb-status').textContent='Error: '+e.message;
+    btn.disabled=false; btn.textContent='Save Booking';
+  }
+};
+
+// ── BOOKING DETAIL ─────────────────────────────────────────────────────
+window.openDetail = id => {
+  const b = bookings.find(x=>x._id===id);
+  if (!b) return;
+  const nights = calcNights(b.checkIn,b.checkOut);
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">${esc(b.guestName)}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem">${statusBadge(b)} ${sourceChip(b.source)} <span class="badge ${(b.property||'hotel')==='villa'?'badge-purple':'badge-blue'}">${(b.property||'hotel').toUpperCase()}</span></div>
+    <div class="pay-summary">
+      <div class="pay-row"><span>Total amount</span><span>Rs ${fmt(b.totalAmount)}</span></div>
+      <div class="pay-row"><span>Advance</span><span>Rs ${fmt(b.advanceAmount)}</span></div>
+      <div class="pay-row"><span>Advance status</span><span>${b.advanceStatus==='received'?'✅ Received':'⏳ Pending'}</span></div>
+      <div class="pay-row total"><span>Balance due</span><span>Rs ${fmt(b.balanceDue)}</span></div>
+    </div>
+    <div class="detail-row"><span class="detail-key">Phone</span><span class="detail-val"><a href="tel:${esc(b.phone)}" style="color:var(--accent)">${esc(b.phone)}</a></span></div>
+    <div class="detail-row"><span class="detail-key">Room</span><span class="detail-val">${esc(b.room)} – ${esc(b.roomType)}</span></div>
+    <div class="detail-row"><span class="detail-key">Guests</span><span class="detail-val">${b.adults||1} adult${(b.adults||1)!=1?'s':''}${b.kids>0?', '+b.kids+' kid'+(b.kids>1?'s':''):''}</span></div>
+    <div class="detail-row"><span class="detail-key">Check-in</span><span class="detail-val">${fmtDate(b.checkIn)}</span></div>
+    <div class="detail-row"><span class="detail-key">Check-out</span><span class="detail-val">${fmtDate(b.checkOut)}</span></div>
+    <div class="detail-row"><span class="detail-key">Nights</span><span class="detail-val">${nights}</span></div>
+    ${b.notes?`<div class="detail-row"><span class="detail-key">Notes</span><span class="detail-val">${esc(b.notes)}</span></div>`:''}
+    ${b.keyGiven?`<div class="detail-row"><span class="detail-key">Key</span><span class="detail-val" style="color:var(--green)">✓ Given by ${esc(b.keyGivenBy||'staff')}</span></div>`:'<div class="detail-row"><span class="detail-key">Key</span><span class="detail-val" style="color:var(--amber)">Not yet given</span></div>'}
+    ${b.idDetails?`<div class="detail-row"><span class="detail-key">ID number</span><span class="detail-val">${esc(b.idDetails)}</span></div>`:''}
+    ${b.idNotes?`<div class="detail-row"><span class="detail-key">ID notes</span><span class="detail-val">${esc(b.idNotes)}</span></div>`:''}
+    ${(b.idPhotoFront||b.idPhotoBack)?`<div class="detail-row"><span class="detail-key">ID photos</span><span class="detail-val" style="display:flex;gap:6px">${b.idPhotoFront?`<img src="${b.idPhotoFront}" style="width:64px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="viewIdPhoto('${b._id}','front')" title="Front"/>`:''} ${b.idPhotoBack?`<img src="${b.idPhotoBack}" style="width:64px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" onclick="viewIdPhoto('${b._id}','back')" title="Back"/>`:''}</span></div>`:''}
+    <div style="margin-top:1.25rem">
+      <div class="btn-row">
+        ${b.advanceStatus==='pending'?`<button class="btn btn-green" onclick='markAdvanceReceived("${id}")'>✅ Mark advance received</button>`:''}
+        ${b.status==='confirmed'?`<button class="btn btn-amber" onclick='doCheckIn("${id}")'>🏨 Check in</button>`:''}
+        ${b.status==='checked-in'?`<button class="btn btn-red" onclick='doCheckOut("${id}")'>🚪 Check out</button>`:''}
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-wa" style="flex:1" onclick='sendWA("${id}","booking")'>📱 Send bank details</button>
+        ${b.advanceStatus==='received'?`<button class="btn btn-wa" style="flex:1;background:#128C7E" onclick='sendWA("${id}","thanks")'>📱 Send thank you</button>`:''}
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-wa" style="width:100%;background:#075E54" onclick='sendMenuLink("${id}")'>🍽️ Send menu link on WhatsApp</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn" onclick='openEditBooking("${id}")'>✏️ Edit</button>
+        <button class="btn" onclick='addIdDetails("${id}")'>${(b.idPhotoFront||b.idPhotoBack)?'🪪 View ID':'🪪 Add ID'}</button>
+        <button class="btn btn-red" onclick='cancelBooking("${id}")'>✕ Cancel</button>
+      </div>
+    </div>`);
+};
+
+window.markAdvanceReceived = async id => {
+  const b = bookings.find(x=>x._id===id);
+  const bal = Math.max(0,(+b.totalAmount||0)-(+b.advanceAmount||0));
+  await updateDoc(doc(DB,'bookings',id),{advanceStatus:'received',balanceDue:bal});
+  closeModal();
+  // Prompt to send thank you WhatsApp
+  setTimeout(()=>{
+    const b2 = bookings.find(x=>x._id===id);
+    showModal(`
+      <div class="modal-title">Advance received! 🎉</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6">
+        Rs ${fmt(b2?.advanceAmount||0)} advance marked as received from <b>${esc(b2?.guestName||'')}</b>.<br/>
+        Balance remaining: <b>Rs ${fmt(b2?.balanceDue||0)}</b>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-wa" style="flex:1" onclick='sendWA("${id}","thanks");closeModal()'>📱 Send thank you WhatsApp</button>
+        <button class="btn" onclick="closeModal()">Skip</button>
+      </div>`);
+  },350);
+};
+
+window.doCheckIn = async id => {
+  await updateDoc(doc(DB,'bookings',id),{status:'checked-in',checkInTime:new Date().toISOString()});
+  closeModal();
+};
+
+window.doCheckOut = async id => {
+  const b = bookings.find(x=>x._id===id);
+  const bal = +(b?.balanceDue||0);
+  showModal(`
+    <div class="modal-title">Check out — ${esc(b?.guestName||'')}</div>
+    <div class="pay-summary" style="margin-bottom:1rem">
+      <div class="pay-row"><span>Total amount</span><span>Rs ${fmt(b?.totalAmount)}</span></div>
+      <div class="pay-row"><span>Advance paid</span><span>Rs ${fmt(b?.advanceStatus==='received'?b?.advanceAmount:0)}</span></div>
+      <div class="pay-row total"><span>Balance due</span><span>Rs ${fmt(bal)}</span></div>
+    </div>
+    ${bal>0?`
+    <div class="fw"><div class="field-label">Payment received at checkout? (Rs ${fmt(bal)})</div>
+      <select id="co-payMethod">
+        <option value="">— Select —</option>
+        <option value="cash">💵 Cash</option>
+        <option value="bank">🏦 Bank transfer</option>
+        <option value="card">💳 Card</option>
+        <option value="partial">Partial payment</option>
+        <option value="none">Not received yet</option>
+      </select>
+    </div>
+    <div id="co-partialWrap" style="display:none">
+      <div class="fw"><div class="field-label">Amount received</div><input type="number" id="co-partialAmt" placeholder="0"/></div>
+    </div>
+    `:'<div style="font-size:14px;color:var(--green);margin-bottom:1rem">✅ No balance due — fully paid!</div>'}
+    <button class="btn-big" onclick='confirmCheckout("${id}",${bal})'>Confirm check out</button>`);
+  if (bal>0) {
+    document.getElementById('co-payMethod').addEventListener('change', function(){
+      document.getElementById('co-partialWrap').style.display = this.value==='partial'?'block':'none';
+    });
+  }
+};
+
+window.confirmCheckout = async (id, bal) => {
+  const b = bookings.find(x=>x._id===id);
+  let updates = {status:'checked-out',checkOutTime:new Date().toISOString()};
+  if (bal>0) {
+    const method = document.getElementById('co-payMethod')?.value||'';
+    if (method==='partial') {
+      const paid = +document.getElementById('co-partialAmt')?.value||0;
+      updates.balanceDue = Math.max(0,bal-paid);
+      updates.checkoutPayment = paid;
+      updates.checkoutPaymentMethod = 'partial';
+    } else if (method&&method!=='none') {
+      updates.balanceDue = 0;
+      updates.checkoutPayment = bal;
+      updates.checkoutPaymentMethod = method;
+    }
+  }
+  await updateDoc(doc(DB,'bookings',id), updates);
+  closeModal();
+};
+
+window.cancelBooking = async id => {
+  if (!confirm('Cancel this booking?')) return;
+  await updateDoc(doc(DB,'bookings',id),{status:'cancelled'});
+  closeModal();
+};
+
+window.addIdDetails = id => {
+  const b = bookings.find(x=>x._id===id);
+  const hasFront = b?.idPhotoFront ? 'border:2px solid var(--green);' : '';
+  const hasBack  = b?.idPhotoBack  ? 'border:2px solid var(--green);' : '';
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    <div class="modal-title">Guest ID — ${esc(b?.guestName||'')}</div>
+    <div class="fw"><div class="field-label">ID type &amp; number</div>
+      <input type="text" id="id-val" placeholder="e.g. NIC 123456789V or Passport A1234567" value="${esc(b?.idDetails||'')}"/>
+    </div>
+    <div class="fw"><div class="field-label">Additional notes (address, nationality, etc.)</div>
+      <textarea id="id-notes" placeholder="Optional extra info...">${esc(b?.idNotes||'')}</textarea>
+    </div>
+    <div class="fw">
+      <div class="field-label">ID photo — front</div>
+      <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+        <div id="id-front-preview" style="width:120px;height:76px;border-radius:8px;background:var(--bg);border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);overflow:hidden;flex-shrink:0;${hasFront}">
+          ${b?.idPhotoFront ? '<img src="'+b.idPhotoFront+'" style="width:100%;height:100%;object-fit:cover"/>' : '📄 No photo'}
+        </div>
+        <div>
+          <button class="btn btn-sm" onclick="document.getElementById('id-front-input').click()">📷 Take / choose photo</button>
+          <input type="file" id="id-front-input" accept="image/*" capture="environment" style="display:none" onchange="previewIdPhoto(this,'id-front-preview','idFrontData')"/>
+          <input type="hidden" id="idFrontData" value=""/>
+          <div style="font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5">Tap to use camera<br/>or pick from gallery</div>
+        </div>
+      </div>
+    </div>
+    <div class="fw">
+      <div class="field-label">ID photo — back</div>
+      <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+        <div id="id-back-preview" style="width:120px;height:76px;border-radius:8px;background:var(--bg);border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);overflow:hidden;flex-shrink:0;${hasBack}">
+          ${b?.idPhotoBack ? '<img src="'+b.idPhotoBack+'" style="width:100%;height:100%;object-fit:cover"/>' : '📄 No photo'}
+        </div>
+        <div>
+          <button class="btn btn-sm" onclick="document.getElementById('id-back-input').click()">📷 Take / choose photo</button>
+          <input type="file" id="id-back-input" accept="image/*" capture="environment" style="display:none" onchange="previewIdPhoto(this,'id-back-preview','idBackData')"/>
+          <input type="hidden" id="idBackData" value=""/>
+          <div style="font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5">Tap to use camera<br/>or pick from gallery</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-big" id="id-saveBtn" onclick='saveIdDetails("${id}")'>Save ID Details</button>
+    <div class="status err" id="id-status"></div>`);
+};
+
+window.previewIdPhoto = (input, previewId, dataId) => {
+  const file = input.files[0];
+  if (!file) return;
+  // Resize image to max 800px wide to keep Firestore document small
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800;
+      const scale = img.width > MAX ? MAX/img.width : 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width*scale);
+      canvas.height = Math.round(img.height*scale);
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      const data = canvas.toDataURL('image/jpeg',0.7);
+      document.getElementById(dataId).value = data;
+      const prev = document.getElementById(previewId);
+      prev.innerHTML = '<img src="'+data+'" style="width:100%;height:100%;object-fit:cover"/>';
+      prev.style.border = '2px solid var(--green)';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.saveIdDetails = async id => {
+  const btn = document.getElementById('id-saveBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Saving...';
+  const val   = document.getElementById('id-val').value.trim();
+  const notes = document.getElementById('id-notes').value.trim();
+  const front = document.getElementById('idFrontData').value;
+  const back  = document.getElementById('idBackData').value;
+  const updates = { idDetails: val, idNotes: notes };
+  // Only overwrite photos if new ones were taken
+  if (front) updates.idPhotoFront = front;
+  if (back)  updates.idPhotoBack  = back;
+  try {
+    await updateDoc(doc(DB,'bookings',id), updates);
+    closeModal();
+  } catch(e) {
+    document.getElementById('id-status').textContent = 'Error saving: '+e.message;
+    btn.disabled=false; btn.textContent='Save ID Details';
+  }
+};
+
+// ── EDIT BOOKING ───────────────────────────────────────────────────────
+window.openEditBooking = id => {
+  const b = bookings.find(x=>x._id===id);
+  const opts = rooms.map(r=>`<option value="${r.id}"${r.id===b.roomId?' selected':''}>[${(r.property||'hotel').toUpperCase()}] ${r.name} – ${r.type}</option>`).join('');
+  const srcOpts = ['facebook','bookingcom','phone','whatsapp','walkin','other'].map(s=>
+    `<option value="${s}"${s===b.source?' selected':''}>${s}</option>`).join('');
+  showModal(`<div class="modal-title">Edit Booking</div>
+    <div class="fw"><div class="field-label">Guest name</div><input type="text" id="eb-name" value="${esc(b.guestName)}"/></div>
+    <div class="fw"><div class="field-label">Phone</div><input type="tel" id="eb-phone" value="${esc(b.phone)}"/></div>
+    <div class="fw"><div class="field-label">Source</div><select id="eb-source">${srcOpts}</select></div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Check-in</div><input type="date" id="eb-checkin" value="${b.checkIn}"/></div>
+      <div class="fw"><div class="field-label">Check-out</div><input type="date" id="eb-checkout" value="${b.checkOut}"/></div>
+    </div>
+    <div class="fw"><div class="field-label">Room</div><select id="eb-room">${opts}</select></div>
+    <div class="fw"><div class="field-label">Adults</div>
+      <div class="stepper">
+        <button class="stepper-btn" onclick="step('eb-adults',-1,1)">−</button>
+        <div class="stepper-val" id="eb-adults-val">${b.adults||1}</div>
+        <input type="hidden" id="eb-adults" value="${b.adults||1}"/>
+        <button class="stepper-btn" onclick="step('eb-adults',1,10)">+</button>
+      </div>
+    </div>
+    <div class="fw"><div class="field-label">Kids</div>
+      <div class="stepper">
+        <button class="stepper-btn" onclick="step('eb-kids',-1,0)">−</button>
+        <div class="stepper-val" id="eb-kids-val">${b.kids||0}</div>
+        <input type="hidden" id="eb-kids" value="${b.kids||0}"/>
+        <button class="stepper-btn" onclick="step('eb-kids',1,10)">+</button>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="fw"><div class="field-label">Total (Rs)</div><input type="number" id="eb-total" value="${b.totalAmount}"/></div>
+      <div class="fw"><div class="field-label">Advance (Rs)</div><input type="number" id="eb-advance" value="${b.advanceAmount}"/></div>
+    </div>
+    <div class="fw"><div class="field-label">Notes</div><textarea id="eb-notes">${esc(b.notes||'')}</textarea></div>
+    <button class="btn-big" onclick='saveEdit("${id}")'>Save Changes</button>`);
+};
+
+window.saveEdit = async id => {
+  const b = bookings.find(x=>x._id===id);
+  const roomId = document.getElementById('eb-room').value;
+  const checkIn = document.getElementById('eb-checkin').value;
+  const checkOut = document.getElementById('eb-checkout').value;
+  // Conflict check (exclude current booking)
+  const conflict = checkRoomConflict(roomId, checkIn, checkOut, id);
+  if (conflict) {
+    alert('⚠️ Room conflict: already booked for '+conflict.guestName+' ('+fmtDate(conflict.checkIn)+' – '+fmtDate(conflict.checkOut)+')');
+    return;
+  }
+  const room = rooms.find(r=>r.id===roomId);
+  const total = +document.getElementById('eb-total').value||0;
+  const advance = +document.getElementById('eb-advance').value||0;
+  const bal = b.advanceStatus==='received'?Math.max(0,total-advance):total;
+  await updateDoc(doc(DB,'bookings',id),{
+    guestName:document.getElementById('eb-name').value.trim(),
+    phone:document.getElementById('eb-phone').value.trim(),
+    checkIn, checkOut,
+    source:document.getElementById('eb-source').value,
+    roomId, room:room?.name||'', roomType:room?.type||'',
+    property:room?.property||'hotel',
+    adults:+document.getElementById('eb-adults').value||1,
+    kids:+document.getElementById('eb-kids').value||0,
+    totalAmount:total, advanceAmount:advance, balanceDue:bal,
+    notes:document.getElementById('eb-notes').value.trim(),
+  });
+  closeModal();
+};
+
+// ── ROOM DETAIL ────────────────────────────────────────────────────────
+window.openRoomDetail = id => {
+  const r = rooms.find(x=>x.id===id);
+  const cur = bookings.find(b=>b.roomId===id&&b.status==='checked-in');
+  const st = r.manualStatus==='maintenance'?'maintenance':cur?'occupied':'available';
+  showModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">${esc(r.name)}</div>
+    <div class="detail-row"><span class="detail-key">Type</span><span class="detail-val">${esc(r.type)}</span></div>
+    <div class="detail-row"><span class="detail-key">Section</span><span class="detail-val"><span class="badge ${r.property==='villa'?'badge-purple':'badge-blue'}">${(r.property||'hotel').toUpperCase()}</span></span></div>
+    <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge ${st==='available'?'badge-green':st==='occupied'?'badge-red':'badge-amber'}">${st}</span></span></div>
+    ${cur?`<div class="detail-row"><span class="detail-key">Guest</span><span class="detail-val">${esc(cur.guestName)}</span></div><div class="detail-row"><span class="detail-key">Until</span><span class="detail-val">${fmtDate(cur.checkOut)}</span></div>`:''}
+    <div style="margin-top:1rem"><div class="btn-row">
+      <button class="btn btn-green" onclick='setRoomStatus("${id}",null)'>🟢 Available</button>
+      <button class="btn btn-amber" onclick='setRoomStatus("${id}","maintenance")'>🟡 Maintenance</button>
+    </div></div>`);
+};
+window.setRoomStatus = async (id,manual) => {
+  await updateDoc(doc(DB,'rooms',id),{manualStatus:manual||null});
+  closeModal();
+};
+
+// ── WHATSAPP ───────────────────────────────────────────────────────────
+window.sendMenuLink = (id) => {
+  const b = bookings.find(x=>x._id===id);
+  if (!b) return;
+  const menuUrl = window.location.origin + window.location.pathname.replace('index.html','').replace(/\/+$/,'/') + 'menu.html';
+  const msg = `Dear ${b.guestName},
+
+Welcome to ${hotelCfg.hotelName||'our hotel'}! 🏨
+
+You can order food directly to your room anytime between 7:00 AM and 9:00 PM using the link below:
+
+🍽️ Room Service Menu:
+${menuUrl}
+
+When ordering, please enter your name and room number (${b.room||'your room number'}).
+
+Enjoy your stay!
+
+${hotelCfg.ownerName||'Management'}
+${hotelCfg.hotelName||''}`;
+  let phone = (b.phone||'').replace(/\D/g,'');
+  if (phone.startsWith('0')) phone = '94'+phone.slice(1);
+  window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
+};
+
+window.sendWA = (id, type) => {
+  const b = bookings.find(x=>x._id===id);
+  const tpl = type==='thanks' ? (hotelCfg.waThanks||defaultThanksTpl()) : (hotelCfg.waTemplate||defaultBookingTpl());
+  const branch = hotelCfg.branch ? 'Branch: '+hotelCfg.branch : '';
+  const msg = tpl
+    .replace(/{guestName}/g,b.guestName||'')
+    .replace(/{hotelName}/g,hotelCfg.hotelName||'Our Hotel')
+    .replace(/{checkIn}/g,fmtDate(b.checkIn))
+    .replace(/{checkOut}/g,fmtDate(b.checkOut))
+    .replace(/{room}/g,b.room||'')
+    .replace(/{roomType}/g,b.roomType||'')
+    .replace(/{property}/g,(b.property||'hotel').toUpperCase())
+    .replace(/{adults}/g,b.adults||1)
+    .replace(/{kids}/g,b.kids||0)
+    .replace(/{total}/g,fmt(b.totalAmount))
+    .replace(/{advance}/g,fmt(b.advanceAmount))
+    .replace(/{balance}/g,fmt(b.balanceDue))
+    .replace(/{bankName}/g,hotelCfg.bankName||'')
+    .replace(/{accountName}/g,hotelCfg.accountName||'')
+    .replace(/{accountNo}/g,hotelCfg.accountNo||'')
+    .replace(/{branchLine}/g,branch)
+    .replace(/{ownerName}/g,hotelCfg.ownerName||'Management');
+  let phone = (b.phone||'').replace(/\D/g,'');
+  if (phone.startsWith('0')) phone='94'+phone.slice(1);
+  window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
+};
+
+// ── SETTINGS ───────────────────────────────────────────────────────────
+function loadSettingsForm() {
+  document.getElementById('cfg-hotelName').value = hotelCfg.hotelName||'';
+  document.getElementById('cfg-ownerName').value = hotelCfg.ownerName||'';
+  document.getElementById('cfg-bankName').value = hotelCfg.bankName||'';
+  document.getElementById('cfg-accountName').value = hotelCfg.accountName||'';
+  document.getElementById('cfg-accountNo').value = hotelCfg.accountNo||'';
+  document.getElementById('cfg-branch').value = hotelCfg.branch||'';
+  document.getElementById('cfg-waTemplate').value = hotelCfg.waTemplate||defaultBookingTpl();
+  document.getElementById('cfg-waThanks').value = hotelCfg.waThanks||defaultThanksTpl();
+}
+
+window.saveSettings = async () => {
+  const data = {
+    hotelName:document.getElementById('cfg-hotelName').value.trim(),
+    ownerName:document.getElementById('cfg-ownerName').value.trim(),
+    bankName:document.getElementById('cfg-bankName').value.trim(),
+    accountName:document.getElementById('cfg-accountName').value.trim(),
+    accountNo:document.getElementById('cfg-accountNo').value.trim(),
+    branch:document.getElementById('cfg-branch').value.trim(),
+    waTemplate:document.getElementById('cfg-waTemplate').value,
+    waThanks:document.getElementById('cfg-waThanks').value,
+  };
+  await saveHotelCfgRemote(data);
+  document.getElementById('topbarTitle').textContent = data.hotelName;
+  setStatus('settingsStatus','✓ Settings saved & synced to all devices!','ok');
+  setTimeout(()=>setStatus('settingsStatus','',''),3000);
+};
+
+function renderRoomConfig() {
+  const el = document.getElementById('roomConfigList');
+  if (!el) return;
+  el.innerHTML = rooms.map(r=>
+    `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <input type="text" value="${esc(r.name)}" style="flex:2;min-width:80px" onchange='updateRoom("${r.id}","name",this.value)'/>
+      <select style="flex:2;min-width:100px" onchange='updateRoom("${r.id}","type",this.value)'>
+        ${['Deluxe Double','Deluxe Triple'].map(t=>`<option${t===r.type?' selected':''}>${t}</option>`).join('')}
+      </select>
+      <select style="flex:1;min-width:80px" onchange='updateRoom("${r.id}","property",this.value)'>
+        <option value="hotel"${(r.property||'hotel')==='hotel'?' selected':''}>🏨 Hotel</option>
+        <option value="villa"${r.property==='villa'?' selected':''}>🌴 Villa</option>
+      </select>
+    </div>`).join('');
+}
+
+window.updateRoom = async (id,field,val) => {
+  await updateDoc(doc(DB,'rooms',id),{[field]:val});
+};
+
+// ── VIEW ID PHOTO ─────────────────────────────────────────────────────
+window.viewIdPhoto = (id, side) => {
+  const b = bookings.find(x=>x._id===id);
+  const src = side==='front' ? b?.idPhotoFront : b?.idPhotoBack;
+  if (!src) return;
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    <div class="modal-title">ID ${side==='front'?'Front':'Back'} — ${esc(b?.guestName||'')}</div>
+    <img src="${src}" style="width:100%;border-radius:10px;margin-bottom:1rem"/>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="openDetail('${id}')">← Back to booking</button>
+      <a href="${src}" download="ID_${side}_${esc(b?.guestName||'guest')}.jpg" class="btn btn-green" style="text-decoration:none">⬇ Download</a>
+    </div>`);
+};
+
+// ── EXPERT HOTEL FEATURES ─────────────────────────────────────────────
+
+// 1. ROOM CONFLICT CHECK — warn if room is already booked on same dates
+function checkRoomConflict(roomId, checkIn, checkOut, excludeId) {
+  return bookings.find(b => {
+    if (b.status==='cancelled'||b.status==='checked-out') return false;
+    if (excludeId && b._id===excludeId) return false;
+    if (b.roomId!==roomId) return false;
+    return b.checkIn < checkOut && b.checkOut > checkIn;
+  });
+}
+
+// 2. REPEAT GUEST CHECK — find previous bookings by same phone
+function findPreviousBookings(phone, excludeId) {
+  return bookings.filter(b => b.phone===phone && b._id!==excludeId && b.status!=='cancelled');
+}
+
+// 3. DASHBOARD — add checkout today section
+function renderCheckoutsToday() {
+  const today = todayStr();
+  const checkoutsToday = bookings.filter(b=>b.checkOut===today&&b.status==='checked-in');
+  const el = document.getElementById('checkoutTodayList');
+  if (!el) return;
+  el.innerHTML = checkoutsToday.length
+    ? checkoutsToday.map(miniCard).join('')
+    : emptyMsg('✅','No checkouts today');
+}
+
+// 4. HOUSEKEEPING — rooms needing cleaning after checkout
+function renderHousekeeping() {
+  const el = document.getElementById('housekeepingList');
+  if (!el) return;
+  const needsCleaning = rooms.filter(r => r.needsCleaning);
+  if (!needsCleaning.length) { el.innerHTML = emptyMsg('🧹','All rooms are clean!'); return; }
+  el.innerHTML = needsCleaning.map(r =>
+    `<div class="booking-item" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:600;font-size:14px">${esc(r.name)}</div>
+        <div style="font-size:12px;color:var(--muted)">${esc(r.type)} · Needs cleaning after checkout</div>
+      </div>
+      <button class="btn btn-green btn-sm" onclick='markRoomClean("${r.id}")'>✓ Clean</button>
+    </div>`
+  ).join('');
+}
+
+window.markRoomClean = async id => {
+  await updateDoc(doc(DB,'rooms',id),{needsCleaning:false});
+};
+
+// Override confirmCheckout to flag room for cleaning
+const _origConfirmCheckout = window.confirmCheckout;
+window.confirmCheckout = async (id, bal) => {
+  await _origConfirmCheckout(id, bal);
+  const b = bookings.find(x=>x._id===id);
+  if (b?.roomId) {
+    await updateDoc(doc(DB,'rooms',b.roomId),{needsCleaning:true});
+  }
+};
+
+// 5. RATE CALCULATOR — auto show rate per night when total & dates filled
+window.calcNightlyRate = () => {
+  const ci = document.getElementById('nb-checkin')?.value;
+  const co = document.getElementById('nb-checkout')?.value;
+  const tot = +document.getElementById('nb-total')?.value||0;
+  const el = document.getElementById('nb-rate-hint');
+  if (!el) return;
+  if (ci&&co&&tot>0) {
+    const n = calcNights(ci,co);
+    if (n>0) { el.textContent = `Rs ${fmt(Math.round(tot/n))} per night (${n} nights)`; el.style.color='var(--green)'; }
+    else { el.textContent=''; }
+  } else { el.textContent=''; }
+};
+
+// 6. REVENUE REPORT
+window.openRevenueReport = () => {
+  const now = new Date();
+  const months = [];
+  for (let i=4;i>=0;i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push({ y:d.getFullYear(), m:d.getMonth(), label:d.toLocaleDateString('en-GB',{month:'short',year:'numeric'}) });
+  }
+  const rows = months.map(({y,m,label}) => {
+    const bInMonth = bookings.filter(b => {
+      if (b.status==='cancelled') return false;
+      const d = new Date(b.checkIn);
+      return d.getFullYear()===y && d.getMonth()===m;
+    });
+    const rev = bInMonth.reduce((s,b)=>s+(+b.totalAmount||0),0);
+    const adv = bInMonth.reduce((s,b)=>s+(b.advanceStatus==='received'?+b.advanceAmount||0:0),0);
+    const nights = bInMonth.reduce((s,b)=>s+calcNights(b.checkIn,b.checkOut),0);
+    const occ = rooms.length>0 ? Math.round((nights / (rooms.length * new Date(y,m+1,0).getDate()))*100) : 0;
+    return {label, count:bInMonth.length, rev, adv, nights, occ};
+  });
+
+  // Source breakdown for current month
+  const curMonth = bookings.filter(b=>{
+    if (b.status==='cancelled') return false;
+    const d = new Date(b.checkIn);
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  });
+  const srcMap = {};
+  curMonth.forEach(b=>{ srcMap[b.source||'other']=(srcMap[b.source||'other']||0)+1; });
+  const srcRows = Object.entries(srcMap).sort((a,b)=>b[1]-a[1]).map(([s,c])=>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>${sourceChip(s)} ${s}</span><span style="font-weight:600">${c} booking${c>1?'s':''}</span></div>`
+  ).join('');
+
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    <div class="modal-title">📊 Revenue Report</div>
+    <div style="overflow-x:auto;margin-bottom:1rem">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <tr style="background:var(--accent-l);color:var(--accent-t)">
+          <th style="padding:8px 6px;text-align:left;border-radius:8px 0 0 8px">Month</th>
+          <th style="padding:8px 4px;text-align:center">Bookings</th>
+          <th style="padding:8px 4px;text-align:right">Revenue</th>
+          <th style="padding:8px 4px;text-align:right">Advances</th>
+          <th style="padding:8px 4px;text-align:center;border-radius:0 8px 8px 0">Occ%</th>
+        </tr>
+        ${rows.map(r=>`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 6px;font-weight:500">${r.label}</td>
+          <td style="padding:8px 4px;text-align:center">${r.count}</td>
+          <td style="padding:8px 4px;text-align:right;color:var(--accent);font-weight:600">Rs ${fmt(r.rev)}</td>
+          <td style="padding:8px 4px;text-align:right">Rs ${fmt(r.adv)}</td>
+          <td style="padding:8px 4px;text-align:center"><span class="badge ${r.occ>=70?'badge-green':r.occ>=40?'badge-amber':'badge-red'}">${r.occ}%</span></td>
+        </tr>`).join('')}
+      </table>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">This month by source</div>
+    ${srcRows||'<div style="font-size:13px;color:var(--muted)">No bookings this month</div>'}`);
+};
+
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────────────
+window.requestNotifPermission = async () => {
+  const btn = document.getElementById('notifBtn');
+  if (!('Notification' in window)) { alert('This browser does not support notifications.'); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    if (btn) { btn.textContent = '🔔 Notifications on'; btn.style.background='var(--green-l)'; btn.style.color='var(--green)'; }
+    scheduleNotifications();
+    alert('✅ Notifications enabled! You will be reminded about tomorrow's arrivals.');
+  } else {
+    alert('Notifications were denied. Please enable them in your browser settings.');
+  }
+};
+
+function scheduleNotifications() {
+  // Check every hour if there are arrivals tomorrow
+  checkTomorrowArrivals();
+  setInterval(checkTomorrowArrivals, 60 * 60 * 1000);
+}
+
+function checkTomorrowArrivals() {
+  if (Notification.permission !== 'granted') return;
+  const tom = new Date(); tom.setDate(tom.getDate()+1);
+  const tomStr = tom.toISOString().split('T')[0];
+  const arriving = bookings.filter(b=>b.checkIn===tomStr&&b.status!=='cancelled'&&b.status!=='checked-out');
+  if (arriving.length > 0) {
+    const lastNotifKey = 'lastNotif_'+tomStr;
+    if (localStorage.getItem(lastNotifKey)) return; // already notified for this date
+    localStorage.setItem(lastNotifKey, '1');
+    const names = arriving.map(b=>b.guestName).join(', ');
+    new Notification('🏨 Arrivals tomorrow — '+hotelCfg.hotelName, {
+      body: arriving.length+' guest'+(arriving.length>1?'s':'')+' arriving: '+names,
+      icon: 'https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/64/1f3e8.png',
+      tag: 'arrivals-'+tomStr,
+    });
+  }
+}
+
+// Auto-schedule if already granted - called from showApp instead of load event
+function initNotifications() {
+  setTimeout(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      scheduleNotifications();
+      const btn = document.getElementById('notifBtn');
+      if (btn) { btn.textContent='🔔 Notifications on'; btn.style.background='var(--green-l)'; btn.style.color='var(--green)'; }
+    }
+  }, 1500);
+}
+
+// ── MENU & ORDERS ──────────────────────────────────────────────────────
+let menuItems = [];
+let unsubMenu = null, unsubOrders = null;
+
+function startMenuListeners() {
+  if (unsubMenu) return;
+  unsubMenu = onSnapshot(collection(DB,'menu'), snap => {
+    menuItems = snap.docs.map(d=>({...d.data(), _id:d.id}));
+    renderMenuItems();
+  });
+  unsubOrders = onSnapshot(
+    query(collection(DB,'orders'), orderBy('createdAt','desc')),
+    snap => {
+      const orders = snap.docs.map(d=>({...d.data(),_id:d.id}));
+      renderLiveOrders(orders);
+    }
+  );
+}
+
+function renderMenuItems() {
+  const el = document.getElementById('menuItemsList');
+  if (!el) return;
+  if (!menuItems.length) { el.innerHTML = emptyMsg('🍽️','No menu items yet. Add some!'); return; }
+  // Group by category
+  const cats = {};
+  menuItems.forEach(item=>{ (cats[item.category||'Other']=cats[item.category||'Other']||[]).push(item); });
+  el.innerHTML = Object.entries(cats).map(([cat,items])=>`
+    <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 6px">${esc(cat)}</div>
+    ${items.map(item=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600;font-size:14px">${esc(item.name)}</div>
+          ${item.description?`<div style="font-size:12px;color:var(--muted)">${esc(item.description)}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:600;color:var(--accent)">Rs ${fmt(item.price)}</span>
+          <button class="btn btn-sm" onclick='editMenuItem("${item._id}")'>✏️</button>
+          <button class="btn btn-sm btn-red" onclick='deleteMenuItem("${item._id}")'>✕</button>
+        </div>
+      </div>`).join('')}`).join('');
+}
+
+function renderLiveOrders(orders) {
+  const el = document.getElementById('liveOrdersList');
+  if (!el) return;
+  const active = orders.filter(o=>o.status!=='done');
+  if (!active.length) { el.innerHTML = emptyMsg('📭','No pending orders'); return; }
+  el.innerHTML = active.map(o=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="font-weight:600;font-size:14px">${esc(o.guestName||'Guest')} · Room ${esc(o.roomNo||'?')}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${new Date(o.createdAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} &nbsp;${kitchenStatusChip(o.status)}</div>
+        </div>
+        <span style="font-weight:600;color:var(--accent)">Rs ${fmt(o.total)}</span>
+      </div>
+      ${o.items.map(i=>`<div style="font-size:13px">• ${esc(i.name)} ×${i.qty} — Rs ${fmt(i.price*i.qty)}</div>`).join('')}
+      ${o.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px">Note: ${esc(o.notes)}</div>`:''}
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-green btn-sm" onclick='markOrderDone("${o._id}")'>✅ Mark done</button>
+        <button class="btn btn-sm" onclick='markOrderDone("${o._id}",true)'>🔕 Dismiss</button>
+      </div>
+    </div>`).join('');
+}
+
+window.markOrderDone = async (id, dismiss) => {
+  await updateDoc(doc(DB,'orders',id),{status:'done', doneAt:new Date().toISOString()});
+};
+
+// Kitchen status chip for admin view
+function kitchenStatusChip(status) {
+  if (status==='preparing') return '<span style="font-size:11px;background:#fdf0d5;color:#7a4f0d;font-weight:600;padding:2px 8px;border-radius:99px">👨‍🍳 Preparing</span>';
+  if (status==='ready') return '<span style="font-size:11px;background:#d4eddf;color:#1e6b45;font-weight:600;padding:2px 8px;border-radius:99px">🔔 Ready to serve</span>';
+  if (status==='done') return '<span style="font-size:11px;background:var(--bg);color:var(--muted);font-weight:600;padding:2px 8px;border-radius:99px">✅ Done</span>';
+  return '<span style="font-size:11px;background:var(--red-l);color:var(--red);font-weight:600;padding:2px 8px;border-radius:99px">🆕 New</span>';
+}
+
+window.openAddMenuItem = () => {
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Add Menu Item</div>
+    <div class="fw"><div class="field-label">Item name</div><input type="text" id="mi-name" placeholder="e.g. Fried Rice"/></div>
+    <div class="fw"><div class="field-label">Category</div>
+      <select id="mi-cat">
+        <option>Breakfast</option><option>Lunch</option><option>Dinner</option>
+        <option>Snacks</option><option>Drinks</option><option>Desserts</option><option>Other</option>
+      </select>
+    </div>
+    <div class="fw"><div class="field-label">Price (Rs)</div><input type="number" id="mi-price" placeholder="0"/></div>
+    <div class="fw"><div class="field-label">Description (optional)</div><input type="text" id="mi-desc" placeholder="Brief description..."/></div>
+    <div class="fw" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="mi-avail" checked style="width:18px;height:18px"/>
+      <label for="mi-avail" style="font-size:14px">Available for ordering</label>
+    </div>
+    <button class="btn-big" onclick="saveMenuItem(null)">Add to menu</button>
+    <div class="status err" id="mi-status"></div>`);
+};
+
+window.editMenuItem = id => {
+  const item = menuItems.find(x=>x._id===id);
+  showModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Edit Menu Item</div>
+    <div class="fw"><div class="field-label">Item name</div><input type="text" id="mi-name" value="${esc(item.name)}"/></div>
+    <div class="fw"><div class="field-label">Category</div>
+      <select id="mi-cat">
+        ${['Breakfast','Lunch','Dinner','Snacks','Drinks','Desserts','Other'].map(c=>`<option${c===item.category?' selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fw"><div class="field-label">Price (Rs)</div><input type="number" id="mi-price" value="${item.price}"/></div>
+    <div class="fw"><div class="field-label">Description</div><input type="text" id="mi-desc" value="${esc(item.description||'')}"/></div>
+    <div class="fw" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="mi-avail" ${item.available!==false?'checked':''} style="width:18px;height:18px"/>
+      <label for="mi-avail" style="font-size:14px">Available for ordering</label>
+    </div>
+    <button class="btn-big" onclick="saveMenuItem('${id}')">Save changes</button>
+    <div class="status err" id="mi-status"></div>`);
+};
+
+window.saveMenuItem = async (id) => {
+  const name = document.getElementById('mi-name').value.trim();
+  const price = +document.getElementById('mi-price').value||0;
+  if (!name||!price){document.getElementById('mi-status').textContent='Name and price required.';return;}
+  const data = {
+    name, price, category:document.getElementById('mi-cat').value,
+    description:document.getElementById('mi-desc').value.trim(),
+    available:document.getElementById('mi-avail').checked,
+  };
+  if (id) await updateDoc(doc(DB,'menu',id),data);
+  else await addDoc(collection(DB,'menu'),data);
+  closeModal();
+};
+
+window.deleteMenuItem = async id => {
+  if (!confirm('Delete this menu item?')) return;
+  await deleteDoc(doc(DB,'menu',id));
+};
+
+window.copyMenuLink = () => {
+  const url = window.location.origin + window.location.pathname.replace('index.html','') + 'menu.html';
+  navigator.clipboard.writeText(url);
+  alert('✅ Menu link copied!
+
+'+url+'
+
+Share this with guests so they can order food.');
+};
+
+// ── WA TEMPLATES ──────────────────────────────────────────────────────
+function defaultBookingTpl(){
+  return `Dear {guestName},
+
+Thank you for choosing {hotelName}! 🏨
+
+📅 Check-in: {checkIn}
+📅 Check-out: {checkOut}
+🚪 Room: {room} ({roomType}) — {property}
+👥 Guests: {adults} adult(s), {kids} kid(s)
+
+💰 *Total Amount: Rs {total}*
+✅ Advance Required: Rs {advance}
+
+Please transfer the advance to:
+🏦 Bank: {bankName}
+👤 Account Name: {accountName}
+🔢 Account No: {accountNo}
+{branchLine}
+
+Please send us the receipt on WhatsApp once paid.
+
+We look forward to welcoming you!
+
+{ownerName}
+{hotelName}`;
+}
+
+function defaultThanksTpl(){
+  return `Dear {guestName},
+
+Thank you so much for your advance payment! 🙏
+
+We have received Rs {advance} from you.
+
+📅 Your check-in: {checkIn}
+📅 Check-out: {checkOut}
+🚪 Room: {room}
+💰 Remaining balance: Rs {balance}
+
+(Balance is payable on check-out)
+
+We look forward to welcoming you to {hotelName}!
+
+{ownerName}
+{hotelName}`;
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function todayStr(){ return new Date().toISOString().split('T')[0]; }
+function calcNights(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+function fmtDate(d){ if(!d) return ''; return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function fmt(n){ return (+n||0).toLocaleString(); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function set(id,html){ const el=document.getElementById(id); if(el) el.innerHTML=html; }
+function emptyMsg(icon,msg){ return `<div class="empty" style="padding:1rem"><div class="empty-icon">${icon}</div>${msg}</div>`; }
+function setSyncDot(on){ const d=document.getElementById('syncDot'); if(d) d.className='sync-dot'+(on?'':' off'); }
+function setStatus(id,msg,cls){ const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='status'+(cls?' '+cls:''); }
+function show(id){ document.getElementById(id).style.display='flex'; }
+function hide(id){ document.getElementById(id).style.display='none'; }
+
+function statusBadge(b){
+  const m={confirmed:'badge-blue','checked-in':'badge-green','checked-out':'badge-gray',cancelled:'badge-red'};
+  const l={confirmed:'Confirmed','checked-in':'Checked In','checked-out':'Checked Out',cancelled:'Cancelled'};
+  return `<span class="badge ${m[b.status]||'badge-gray'}">${l[b.status]||b.status}</span>`;
+}
+function sourceChip(src){
+  const labels={facebook:'📘 Facebook',bookingcom:'🌐 Booking.com',phone:'📞 Phone',whatsapp:'💬 WhatsApp',walkin:'🚶 Walk-in',other:'Other'};
+  const cls={facebook:'source-facebook',bookingcom:'source-bookingcom',phone:'source-phone',whatsapp:'source-whatsapp',walkin:'source-walkin',other:'source-other'};
+  if(!src) return '';
+  return `<span class="source-chip ${cls[src]||'source-other'}">${labels[src]||src}</span>`;
+}
+
+window.showModal = html => { document.getElementById('modalBody').innerHTML=html; document.getElementById('modalOverlay').style.display='flex'; document.getElementById('modalContent').scrollTop=0; };
+window.closeModal = () => { document.getElementById('modalOverlay').style.display='none'; };
+window.closeModalOnBg = e => { if(e.target===document.getElementById('modalOverlay')) closeModal(); };
+</script>
+</body>
+</html>

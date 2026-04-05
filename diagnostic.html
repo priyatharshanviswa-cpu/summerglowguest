@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hotel App Diagnostic</title>
+<style>
+body{font-family:sans-serif;padding:1.5rem;background:#f5f5f5;color:#111;max-width:600px;margin:0 auto;}
+h2{margin-bottom:1rem;color:#1a5276;}
+.step{background:#fff;border-radius:10px;padding:1rem;margin-bottom:.75rem;border-left:4px solid #ccc;}
+.step.ok{border-color:#1e6b45;}.step.fail{border-color:#8b1a1a;}.step.running{border-color:#d4860d;}
+.step-title{font-weight:600;font-size:14px;margin-bottom:4px;}
+.step-msg{font-size:13px;color:#555;word-break:break-all;line-height:1.5;}
+.step.fail .step-msg{color:#8b1a1a;}.step.ok .step-msg{color:#1e6b45;}
+button{padding:10px 20px;background:#1a5276;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;margin-top:.5rem;margin-right:8px;}
+button.sec{background:#fff;color:#1a5276;border:1px solid #1a5276;}
+.cfg-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem;}
+input[type=text]{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;box-sizing:border-box;}
+label{font-size:11px;color:#555;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;}
+pre{white-space:pre-wrap;word-break:break-all;font-size:11px;line-height:1.5;}
+</style>
+</head>
+<body>
+<h2>🔧 Hotel App Diagnostic</h2>
+<p style="font-size:13px;color:#555;margin-bottom:1.5rem">Tests each part of the app step by step to find exactly where it is failing.</p>
+
+<div id="steps"></div>
+
+<div id="cfgForm" style="display:none;background:#fff;border-radius:10px;padding:1rem;margin-top:1rem;">
+  <div style="font-weight:600;margin-bottom:.75rem;font-size:14px">Enter your Firebase config:</div>
+  <div class="cfg-row">
+    <div><label>API Key</label><input type="text" id="t-apiKey" placeholder="AIzaSy..."/></div>
+    <div><label>Auth Domain</label><input type="text" id="t-authDomain" placeholder="xxx.firebaseapp.com"/></div>
+  </div>
+  <div class="cfg-row">
+    <div><label>Project ID</label><input type="text" id="t-projectId" placeholder="your-project-id"/></div>
+    <div><label>Storage Bucket</label><input type="text" id="t-storageBucket" placeholder="xxx.appspot.com"/></div>
+  </div>
+  <div class="cfg-row">
+    <div><label>Messaging Sender ID</label><input type="text" id="t-messagingSenderId" placeholder="123456789"/></div>
+    <div><label>App ID</label><input type="text" id="t-appId" placeholder="1:xxx:web:xxx"/></div>
+  </div>
+  <button onclick="testWithConfig()">Run diagnostic with this config</button>
+</div>
+
+<div id="actions" style="margin-top:1rem;display:none">
+  <button onclick="goToApp()">✅ Open main app →</button>
+  <button class="sec" onclick="document.getElementById('cfgForm').style.display='block'">Try different config</button>
+</div>
+
+<div id="logBox" style="margin-top:1rem;font-size:12px;background:#fff;border-radius:8px;padding:1rem;display:none">
+  <div style="font-weight:600;margin-bottom:.5rem;font-size:13px">Full log:</div>
+  <pre id="logText"></pre>
+</div>
+
+<script type="module">
+const CFG_KEY = 'hmFirebaseCfg';
+let workingCfg = null;
+const logs = [];
+
+function log(msg) { logs.push(msg); const el=document.getElementById('logText'); if(el) el.textContent=logs.join('\n'); }
+
+function addStep(id, title) {
+  const d=document.createElement('div'); d.className='step running'; d.id='step-'+id;
+  d.innerHTML=`<div class="step-title">${title}</div><div class="step-msg" id="msg-${id}">⏳ Running...</div>`;
+  document.getElementById('steps').appendChild(d);
+}
+function ok(id,msg){ const e=document.getElementById('step-'+id); if(e){e.className='step ok';document.getElementById('msg-'+id).textContent='✅ '+msg;} log('[OK] '+id+': '+msg); }
+function fail(id,msg){ const e=document.getElementById('step-'+id); if(e){e.className='step fail';document.getElementById('msg-'+id).innerHTML='❌ '+msg;} log('[FAIL] '+id+': '+msg); }
+
+async function run(cfg) {
+  document.getElementById('steps').innerHTML='';
+  document.getElementById('actions').style.display='none';
+  document.getElementById('logBox').style.display='block';
+  logs.length=0;
+
+  // 1. SDK
+  addStep('sdk','1. Loading Firebase SDK');
+  let initializeApp, getApps, getAuth, onAuthStateChanged, signInWithEmailAndPassword, getFirestore, fsDoc, getDoc;
+  try {
+    ({initializeApp,getApps} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'));
+    ({getAuth,onAuthStateChanged,signInWithEmailAndPassword} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'));
+    ({getFirestore,doc:fsDoc,getDoc} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'));
+    ok('sdk','All Firebase SDKs loaded');
+  } catch(e) { fail('sdk','Failed to load: '+e.message+' — check internet connection'); return; }
+
+  // 2. Config
+  addStep('cfg','2. Firebase config values');
+  if (!cfg||!cfg.apiKey||!cfg.projectId) { fail('cfg','No config found. Enter values below.'); document.getElementById('cfgForm').style.display='block'; return; }
+  ok('cfg','Project ID: '+cfg.projectId);
+
+  // 3. Init app
+  addStep('init','3. Initialize Firebase');
+  let app;
+  try {
+    const existing=getApps();
+    app = existing.length ? existing[0] : initializeApp(cfg);
+    ok('init','Firebase app ready');
+  } catch(e) { fail('init','initializeApp error: '+e.message); document.getElementById('cfgForm').style.display='block'; return; }
+
+  // 4. Auth
+  addStep('auth','4. Firebase Authentication');
+  const auth = getAuth(app);
+  await new Promise(resolve => {
+    const t = setTimeout(()=>{
+      fail('auth','Timed out after 8s.<br/>Most likely fix: go to Firebase Console → Authentication → Settings → Authorised domains → add <b>'+window.location.hostname+'</b>');
+      document.getElementById('cfgForm').style.display='block';
+      resolve();
+    }, 8000);
+    onAuthStateChanged(auth, user => {
+      clearTimeout(t);
+      ok('auth', user ? 'Signed in as '+user.email : 'Auth working (not signed in yet)');
+      resolve();
+    }, err => { clearTimeout(t); fail('auth','Auth error: '+err.message); resolve(); });
+  });
+
+  // 5. Firestore
+  addStep('fs','5. Firestore database');
+  const db = getFirestore(app);
+  try {
+    const snap = await Promise.race([
+      getDoc(fsDoc(db,'config','hotel')),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('Timed out after 8s — check Firestore Rules: allow read, write: if request.auth != null; and make sure database region is set')),8000))
+    ]);
+    ok('fs', snap.exists() ? 'Connected! Hotel: '+(snap.data().hotelName||'(unnamed)') : 'Connected (hotel config not set up yet)');
+    workingCfg=cfg;
+    document.getElementById('actions').style.display='block';
+  } catch(e) {
+    let hint = e.message;
+    if (e.message.includes('permission')||e.message.includes('PERMISSION')) hint += '<br/><br/>Fix: Firebase Console → Firestore → Rules → set: <code>allow read, write: if request.auth != null;</code> → Publish';
+    if (e.message.includes('Timed out')) hint += '<br/><br/>Also check: Firebase Console → Firestore → make sure database was created (not just project)';
+    fail('fs', hint);
+  }
+}
+
+window.testWithConfig = () => {
+  const cfg={
+    apiKey:document.getElementById('t-apiKey').value.trim(),
+    authDomain:document.getElementById('t-authDomain').value.trim(),
+    projectId:document.getElementById('t-projectId').value.trim(),
+    storageBucket:document.getElementById('t-storageBucket').value.trim(),
+    messagingSenderId:document.getElementById('t-messagingSenderId').value.trim(),
+    appId:document.getElementById('t-appId').value.trim(),
+  };
+  if (!cfg.apiKey||!cfg.projectId){alert('Please fill in at least API Key and Project ID');return;}
+  localStorage.setItem(CFG_KEY,JSON.stringify(cfg));
+  run(cfg);
+};
+
+window.goToApp = () => {
+  if(workingCfg) localStorage.setItem(CFG_KEY,JSON.stringify(workingCfg));
+  window.location.href='index.html';
+};
+
+// Auto-run
+const saved=(()=>{try{return JSON.parse(localStorage.getItem(CFG_KEY));}catch(e){return null;}})();
+if(saved){run(saved);}
+else{
+  addStep('cfg','1. Firebase config');
+  fail('cfg','No saved config found');
+  document.getElementById('cfgForm').style.display='block';
+  document.getElementById('logBox').style.display='block';
+}
+</script>
+</body>
+</html>
