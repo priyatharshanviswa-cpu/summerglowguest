@@ -230,6 +230,9 @@ textarea{resize:vertical;min-height:70px;line-height:1.6;}
   <div class="setup-card">
     <div class="setup-logo">🔧 First-time Setup</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6">This is done once. After this every device just opens the link and logs in.</p>
+    <div id="diagImportBanner" style="display:none;background:var(--green-l);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:1rem;font-size:13px;color:var(--green)">
+      ✅ Firebase config found from diagnostic! Just fill in your hotel details below and click Save.
+    </div>
     <div class="info-box">
       <b>Get your Firebase config (free):</b>
       <ol>
@@ -506,33 +509,55 @@ const HARDCODED_CONFIG = {
   appId:             "1:210248253727:web:68301140b2e00b021df02a"
 };
 // ─────────────────────────────────────────────────────────────────────
+//Version 12
 
 // ── BOOTSTRAP ────────────────────────────────────────────────────────
+// Pre-fill setup form if diagnostic already saved a config
+function prefillSetupFromDiag() {
+  const cfg = loadLocalCfg();
+  if (!cfg || !cfg.apiKey) return;
+  const fields = ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'];
+  let allFilled = true;
+  fields.forEach(f => {
+    const el = document.getElementById('fc-'+f);
+    if (el && cfg[f]) el.value = cfg[f];
+    else allFilled = false;
+  });
+  if (allFilled) {
+    const banner = document.getElementById('diagImportBanner');
+    if (banner) banner.style.display = 'block';
+  }
+}
+
 window.addEventListener('load', async () => {
-  // Priority: 1) hardcoded config, 2) localStorage, 3) show setup screen
+  // Priority: 1) hardcoded config in file, 2) localStorage, 3) show setup screen
   const hardcoded = HARDCODED_CONFIG.apiKey ? HARDCODED_CONFIG : null;
   const lsCfg = loadLocalCfg();
   const cfg = hardcoded || lsCfg;
-  if (!cfg) { hide('loadingScreen'); show('firebaseSetup'); return; }
-  // Always keep localStorage fresh so session is instant next time
-  if (cfg) saveLocalCfg(cfg);
-  try {
-    await bootFirebase(cfg);
-  } catch(e) {
+
+  if (!cfg || !cfg.apiKey) {
+    // No config at all — show the setup screen straight away, no spinning
     hide('loadingScreen');
-    // Show error details to help diagnose
-    document.getElementById('loadingScreen').style.display = 'flex';
-    document.getElementById('loadingScreen').innerHTML = `
-      <div style="max-width:480px;padding:2rem;background:#fff;border-radius:16px;border:1px solid #e5e0d8;margin:1rem;text-align:center">
-        <div style="font-size:28px;margin-bottom:.5rem">⚠️</div>
-        <div style="font-family:'Fraunces',serif;font-size:18px;color:#8b1a1a;margin-bottom:.75rem">Connection error</div>
-        <div style="font-size:13px;color:#7a7167;margin-bottom:1rem;line-height:1.6">${e.message||'Unknown error'}</div>
-        <div style="font-size:12px;background:#f4f1ec;padding:.75rem;border-radius:8px;color:#1c1915;margin-bottom:1rem;text-align:left;word-break:break-all">Check your Firebase config values in the HARDCODED_CONFIG section of index.html</div>
-        <button onclick="location.reload()" style="padding:10px 20px;background:#1a5276;color:#fff;border:none;border-radius:9px;font-size:14px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">Try again</button>
-        <br/><br/>
-        <button onclick="localStorage.clear();location.reload()" style="padding:8px 16px;background:none;color:#8b1a1a;border:1px solid #f0b8b8;border-radius:9px;font-size:13px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">Reset & reconfigure</button>
-      </div>`;
+    document.getElementById('firebaseSetup').style.display = 'flex';
+    prefillSetupFromDiag();
+    return;
   }
+
+  // Save to localStorage so this device remembers it
+  saveLocalCfg(cfg);
+
+  // ── KEY FIX: show login screen immediately, don't wait for Firebase ──
+  // Firebase auth is async and can take 2-5s on mobile — this prevents
+  // the infinite spinner. Firebase continues loading in the background.
+  hide('loadingScreen');
+  document.getElementById('authScreen').style.display = 'flex';
+
+  // Boot Firebase in background — when ready it will auto-navigate
+  bootFirebase(cfg).catch(e => {
+    console.error('Firebase boot error:', e);
+    const s = document.getElementById('authStatus');
+    if (s) { s.textContent = 'Connection error: ' + e.message; s.className = 'status err'; }
+  });
 });
 
 function loadLocalCfg() {
@@ -547,20 +572,14 @@ async function bootFirebase(fbCfg) {
   AUTH = getAuth(app);
   DB = getFirestore(app);
 
-  // Safety timeout — if Firebase doesn't respond in 12s, show auth screen anyway
-  const timeout = setTimeout(() => {
-    console.warn('Firebase auth timeout — showing auth screen');
-    hide('loadingScreen');
-    showAuthScreen();
-  }, 12000);
-
   onAuthStateChanged(AUTH, async user => {
-    clearTimeout(timeout);
+    // Hide both loading and auth screens before showing the right one
     hide('loadingScreen');
+    hide('authScreen');
     if (user) {
       currentUser = user;
-      try { await loadHotelCfg(); } catch(e) { console.warn('loadHotelCfg failed:', e.message); }
-      try { await loadUserRole(); } catch(e) { console.warn('loadUserRole failed:', e.message); }
+      try { await loadHotelCfg(); } catch(e) { console.warn('loadHotelCfg:', e.message); }
+      try { await loadUserRole(); } catch(e) { console.warn('loadUserRole:', e.message); }
       startListeners();
       if (userRole === 'housekeeping') showHousekeepingApp();
       else if (userRole === 'kitchen') showKitchenApp();
@@ -568,14 +587,14 @@ async function bootFirebase(fbCfg) {
     } else {
       currentUser = null;
       stopListeners();
-      showAuthScreen();
+      // Already showing auth screen — just make sure it's visible
+      document.getElementById('authScreen').style.display = 'flex';
     }
   }, err => {
-    // Auth error handler — don't stay stuck
-    clearTimeout(timeout);
     console.error('Auth error:', err);
-    hide('loadingScreen');
-    showAuthScreen();
+    document.getElementById('authScreen').style.display = 'flex';
+    const s = document.getElementById('authStatus');
+    if (s) { s.textContent = 'Auth error: ' + err.message; s.className = 'status err'; }
   });
 }
 
@@ -712,22 +731,11 @@ window.showUserMenu = () => showModal(
 window.doSignOut = async () => { closeModal(); await signOut(AUTH); };
 
 // ── SHOW AUTH: auto-load firebase cfg from Firestore if not in LS ─────
-async function showAuthScreen() {
+function showAuthScreen() {
   hide('appScreen');
   hide('loadingScreen');
   document.getElementById('bottomNav').style.display='none';
   document.getElementById('authScreen').style.display='flex';
-  // Try to load hotel name for the login screen (best effort)
-  if (DB) {
-    try {
-      const snap = await getDoc(doc(DB,'config','hotel'));
-      if (snap.exists()) {
-        hotelCfg = snap.data();
-        const sub = document.getElementById('authHotelSub');
-        if (sub) sub.textContent = 'Sign in to ' + (hotelCfg.hotelName||'Hotel Manager');
-      }
-    } catch(e) { /* ignore — rules may require auth */ }
-  }
 }
 
 // ── FIRESTORE LISTENERS ───────────────────────────────────────────────
