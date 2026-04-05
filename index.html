@@ -498,12 +498,12 @@ const DEFAULT_ROOMS = [
 // Leave as empty strings if you haven't set up Firebase yet.
 // ─────────────────────────────────────────────────────────────────────
 const HARDCODED_CONFIG = {
-  apiKey:            "AIzaSyBthQxCjnJNygAX5JvtfSRBWxhfaFZoVig",
-  authDomain:        "summer-glow.firebaseapp.com",
-  projectId:         "summer-glow",
-  storageBucket:     "summer-glow.firebasestorage.app",
-  messagingSenderId: "210248253727",
-  appId:             "1:210248253727:web:68301140b2e00b021df02a"
+  apiKey:            "",
+  authDomain:        "",
+  projectId:         "",
+  storageBucket:     "",
+  messagingSenderId: "",
+  appId:             ""
 };
 // ─────────────────────────────────────────────────────────────────────
 
@@ -546,12 +546,21 @@ async function bootFirebase(fbCfg) {
   const app = getApps().length ? getApps()[0] : initializeApp(fbCfg);
   AUTH = getAuth(app);
   DB = getFirestore(app);
+
+  // Safety timeout — if Firebase doesn't respond in 12s, show auth screen anyway
+  const timeout = setTimeout(() => {
+    console.warn('Firebase auth timeout — showing auth screen');
+    hide('loadingScreen');
+    showAuthScreen();
+  }, 12000);
+
   onAuthStateChanged(AUTH, async user => {
+    clearTimeout(timeout);
     hide('loadingScreen');
     if (user) {
       currentUser = user;
-      await loadHotelCfg();
-      await loadUserRole();
+      try { await loadHotelCfg(); } catch(e) { console.warn('loadHotelCfg failed:', e.message); }
+      try { await loadUserRole(); } catch(e) { console.warn('loadUserRole failed:', e.message); }
       startListeners();
       if (userRole === 'housekeeping') showHousekeepingApp();
       else if (userRole === 'kitchen') showKitchenApp();
@@ -561,6 +570,12 @@ async function bootFirebase(fbCfg) {
       stopListeners();
       showAuthScreen();
     }
+  }, err => {
+    // Auth error handler — don't stay stuck
+    clearTimeout(timeout);
+    console.error('Auth error:', err);
+    hide('loadingScreen');
+    showAuthScreen();
   });
 }
 
@@ -698,11 +713,21 @@ window.doSignOut = async () => { closeModal(); await signOut(AUTH); };
 
 // ── SHOW AUTH: auto-load firebase cfg from Firestore if not in LS ─────
 async function showAuthScreen() {
-  // If we have no local cfg at all, check if setup was done by loading
-  // from a known project URL is not possible without cfg — show setup.
   hide('appScreen');
+  hide('loadingScreen');
   document.getElementById('bottomNav').style.display='none';
-  show('authScreen');
+  document.getElementById('authScreen').style.display='flex';
+  // Try to load hotel name for the login screen (best effort)
+  if (DB) {
+    try {
+      const snap = await getDoc(doc(DB,'config','hotel'));
+      if (snap.exists()) {
+        hotelCfg = snap.data();
+        const sub = document.getElementById('authHotelSub');
+        if (sub) sub.textContent = 'Sign in to ' + (hotelCfg.hotelName||'Hotel Manager');
+      }
+    } catch(e) { /* ignore — rules may require auth */ }
+  }
 }
 
 // ── FIRESTORE LISTENERS ───────────────────────────────────────────────
