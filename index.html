@@ -513,15 +513,15 @@ const DEFAULT_ROOMS = [
 // Leave as empty strings if you haven't set up Firebase yet.
 // ─────────────────────────────────────────────────────────────────────
 const HARDCODED_CONFIG = {
- apiKey: "AIzaSyBthQxCjnJNygAX5JvtfSRBWxhfaFZoVig",
-  authDomain: "summer-glow.firebaseapp.com",
-  projectId: "summer-glow",
-  storageBucket: "summer-glow.firebasestorage.app",
+  apiKey:            "AIzaSyBthQxCjnJNygAX5JvtfSRBWxhfaFZoVig",
+  authDomain:        "summer-glow.firebaseapp.com",
+  projectId:         "summer-glow",
+  storageBucket:     "summer-glow.firebasestorage.app",
   messagingSenderId: "210248253727",
-  appId: "1:210248253727:web:68301140b2e00b021df02a"
+  appId:             "1:210248253727:web:68301140b2e00b021df02a"
 };
-//─────────────────────────────────────────────────────────────────────
-//Version 14
+// ─────────────────────────────────────────────────────────────────────
+
 // ── BOOTSTRAP ────────────────────────────────────────────────────────
 // Pre-fill setup form if diagnostic already saved a config
 function prefillSetupFromDiag() {
@@ -2054,7 +2054,7 @@ window.requestNotifPermission = async () => {
   if (perm === 'granted') {
     if (btn) { btn.textContent = '🔔 Notifications on'; btn.style.background='var(--green-l)'; btn.style.color='var(--green)'; }
     scheduleNotifications();
-    alert('✅ Notifications enabled! You will be reminded about tomorrow's arrivals.');
+    alert('✅ Notifications enabled! You will be reminded about tomorrows arrivals.');
   } else {
     alert('Notifications were denied. Please enable them in your browser settings.');
   }
@@ -2236,11 +2236,7 @@ window.deleteMenuItem = async id => {
 window.copyMenuLink = () => {
   const url = window.location.origin + window.location.pathname.replace('index.html','') + 'menu.html';
   navigator.clipboard.writeText(url);
-  alert('✅ Menu link copied!
-
-'+url+'
-
-Share this with guests so they can order food.');
+  alert('Menu link copied: ' + url);
 };
 
 // ── WA TEMPLATES ──────────────────────────────────────────────────────
