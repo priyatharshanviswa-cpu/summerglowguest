@@ -219,11 +219,23 @@ textarea{resize:vertical;min-height:70px;line-height:1.6;}
 
 <!-- LOADING -->
 <div id="loadingScreen">
-  <div>
+  <div style="text-align:center">
     <div class="loading-logo">🏨 Hotel Manager</div>
     <div class="spinner-lg"></div>
+    <div id="loadingMsg" style="font-size:13px;color:var(--muted);margin-top:1rem;display:none">
+      Taking longer than usual...<br/>
+      <a href="diagnostic.html" style="color:var(--accent)">Run diagnostic</a> &nbsp;|&nbsp;
+      <a href="#" onclick="localStorage.clear();location.reload()" style="color:var(--red)">Reset config</a>
+    </div>
   </div>
 </div>
+<script>
+// Show fallback links if still loading after 4 seconds
+setTimeout(function(){
+  var el = document.getElementById('loadingMsg');
+  if (el) el.style.display = 'block';
+}, 4000);
+</script>
 
 <!-- FIREBASE SETUP (first time only) -->
 <div id="firebaseSetup">
@@ -501,16 +513,15 @@ const DEFAULT_ROOMS = [
 // Leave as empty strings if you haven't set up Firebase yet.
 // ─────────────────────────────────────────────────────────────────────
 const HARDCODED_CONFIG = {
-  apiKey:            "AIzaSyBthQxCjnJNygAX5JvtfSRBWxhfaFZoVig",
-  authDomain:        "summer-glow.firebaseapp.com",
-  projectId:         "summer-glow",
-  storageBucket:     "summer-glow.firebasestorage.app",
+ apiKey: "AIzaSyBthQxCjnJNygAX5JvtfSRBWxhfaFZoVig",
+  authDomain: "summer-glow.firebaseapp.com",
+  projectId: "summer-glow",
+  storageBucket: "summer-glow.firebasestorage.app",
   messagingSenderId: "210248253727",
-  appId:             "1:210248253727:web:68301140b2e00b021df02a"
+  appId: "1:210248253727:web:68301140b2e00b021df02a"
 };
-// ─────────────────────────────────────────────────────────────────────
-//Version 12
-
+//─────────────────────────────────────────────────────────────────────
+//Version 14
 // ── BOOTSTRAP ────────────────────────────────────────────────────────
 // Pre-fill setup form if diagnostic already saved a config
 function prefillSetupFromDiag() {
@@ -529,36 +540,37 @@ function prefillSetupFromDiag() {
   }
 }
 
-window.addEventListener('load', async () => {
-  // Priority: 1) hardcoded config in file, 2) localStorage, 3) show setup screen
+
+
+// ── STARTUP ──────────────────────────────────────────────────────────
+async function startApp() {
   const hardcoded = HARDCODED_CONFIG.apiKey ? HARDCODED_CONFIG : null;
   const lsCfg = loadLocalCfg();
   const cfg = hardcoded || lsCfg;
 
   if (!cfg || !cfg.apiKey) {
-    // No config at all — show the setup screen straight away, no spinning
     hide('loadingScreen');
     document.getElementById('firebaseSetup').style.display = 'flex';
     prefillSetupFromDiag();
     return;
   }
 
-  // Save to localStorage so this device remembers it
   saveLocalCfg(cfg);
 
-  // ── KEY FIX: show login screen immediately, don't wait for Firebase ──
-  // Firebase auth is async and can take 2-5s on mobile — this prevents
-  // the infinite spinner. Firebase continues loading in the background.
+  // Show login immediately — no waiting for Firebase
   hide('loadingScreen');
   document.getElementById('authScreen').style.display = 'flex';
 
-  // Boot Firebase in background — when ready it will auto-navigate
+  // Connect Firebase in background
   bootFirebase(cfg).catch(e => {
-    console.error('Firebase boot error:', e);
+    console.error('Firebase error:', e);
     const s = document.getElementById('authStatus');
     if (s) { s.textContent = 'Connection error: ' + e.message; s.className = 'status err'; }
   });
-});
+}
+
+// Module scripts execute after DOM is parsed — call directly, no event needed
+startApp();
 
 function loadLocalCfg() {
   try { return JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY)); } catch(e) { return null; }
