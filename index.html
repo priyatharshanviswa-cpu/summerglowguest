@@ -342,6 +342,13 @@ setTimeout(function(){
     <div class="card card-sm"><div class="card-title">🧹 Housekeeping needed</div><div id="housekeepingList"></div></div>
     <div class="card card-sm"><div class="card-title">⚠️ Pending advances</div><div id="pendingList"></div></div>
     <div class="card card-sm"><div class="card-title">📆 Next 7 days</div><div id="upcomingList"></div></div>
+    <div class="card card-sm">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <div class="card-title" style="margin:0">🍽️ Live food orders</div>
+        <button class="btn btn-sm" style="font-size:11px" onclick="showTab('settings');setTimeout(()=>document.getElementById('menuSection').scrollIntoView({behavior:'smooth'}),200)">Manage menu →</button>
+      </div>
+      <div id="liveOrdersList"><div class="empty" style="padding:1rem"><div class="empty-icon">📭</div>No orders yet</div></div>
+    </div>
   </div>
 
   <!-- BOOKINGS -->
@@ -394,25 +401,24 @@ setTimeout(function(){
     <div class="card card-sm"><div class="card-title">Payment records</div><div id="paymentList"></div></div>
   </div>
 
-  <!-- ORDERS -->
-  <div class="panel" id="tab-orders">
-    <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-      <button class="btn btn-green" onclick="openAddMenuItem()" style="flex:1">+ Add menu item</button>
-      <button class="btn" onclick="copyMenuLink()" style="flex:1">🔗 Copy customer menu link</button>
-      <button class="btn" id="notifBtn" onclick="requestNotifPermission()" style="flex:1">🔔 Enable notifications</button>
-    </div>
-    <div class="card card-sm">
-      <div class="card-title">🍽️ Live orders</div>
-      <div id="liveOrdersList"><div class="empty"><div class="empty-icon">📭</div>No orders yet</div></div>
-    </div>
-    <div class="card card-sm">
-      <div class="card-title">📋 Menu items</div>
-      <div id="menuItemsList"></div>
-    </div>
-  </div>
-
   <!-- SETTINGS -->
   <div class="panel" id="tab-settings">
+
+    <div class="card" id="menuSection">
+      <div class="card-title">🍽️ Food menu</div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="openAddMenuItem()" style="flex:1;font-weight:600">+ Add menu item</button>
+        <button class="btn" onclick="copyMenuLink()" style="flex:1">🔗 Copy menu link</button>
+      </div>
+      <div id="menuItemsList"><div style="font-size:13px;color:var(--muted);text-align:center;padding:1rem">No menu items yet</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔔 Notifications</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:.75rem">Get notified on your phone about tomorrow's arrivals.</p>
+      <button class="btn btn-green" id="notifBtn" onclick="requestNotifPermission()" style="width:100%">Enable arrival notifications</button>
+    </div>
+
     <div class="card">
       <div class="card-title">Hotel settings</div>
       <div class="fw"><div class="field-label">Hotel name</div><input type="text" id="cfg-hotelName"/></div>
@@ -466,7 +472,7 @@ setTimeout(function(){
   <button class="nav-btn" id="nb-bookings" onclick="showTab('bookings')"><span class="nav-icon">📋</span>Bookings</button>
   <button class="nav-btn" id="nb-calendar" onclick="showTab('calendar')"><span class="nav-icon">📅</span>Calendar</button>
   <button class="nav-btn" id="nb-rooms" onclick="showTab('rooms')"><span class="nav-icon">🚪</span>Rooms</button>
-  <button class="nav-btn" id="nb-orders" onclick="showTab('orders')"><span class="nav-icon">🍽️</span>Orders</button>
+  <button class="nav-btn" id="nb-payments" onclick="showTab('payments')"><span class="nav-icon">💰</span>Payments</button>
   <button class="nav-btn" id="nb-settings" onclick="showTab('settings')"><span class="nav-icon">⚙️</span>Settings</button>
 </div>
 
@@ -521,7 +527,7 @@ const HARDCODED_CONFIG = {
   appId:             "1:210248253727:web:68301140b2e00b021df02a"
 };
 // ─────────────────────────────────────────────────────────────────────
-
+//Version 15
 // ── BOOTSTRAP ────────────────────────────────────────────────────────
 // Pre-fill setup form if diagnostic already saved a config
 function prefillSetupFromDiag() {
@@ -1035,10 +1041,12 @@ function showApp() {
 window.showTab = name => {
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  document.getElementById('nb-'+name).classList.add('active');
+  const panel = document.getElementById('tab-'+name);
+  const navBtn = document.getElementById('nb-'+name);
+  if (panel) panel.classList.add('active');
+  if (navBtn) navBtn.classList.add('active');
   if (name==='calendar') renderCalendar();
-  if (name==='orders') { renderMenuItems(); }
+  if (name==='settings') renderMenuItems();
 };
 
 function renderAll() {
@@ -1067,10 +1075,13 @@ function renderDashboard() {
 }
 
 function miniCard(b) {
+  const roomLabel = b.bookingType==='villa'
+    ? '🌴 Villa · '+(b.roomIds||[]).length+' rooms'
+    : esc(b.room||'');
   return `<div class="booking-item" onclick='openDetail("${b._id}")'>
     <div class="booking-top"><div class="booking-name">${esc(b.guestName)}</div>${statusBadge(b)}</div>
-    <div class="booking-meta">${esc(b.room||'')} · ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</div>
-    <div class="booking-meta">📞 ${esc(b.phone||'')} &nbsp;${sourceChip(b.source)}</div>
+    <div class="booking-meta">${roomLabel} · ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}</div>
+    <div class="booking-meta">👥 ${b.adults||1} adult${(b.adults||1)!=1?'s':''}${b.kids>0?', '+b.kids+' kid'+(b.kids>1?'s':''):''} &nbsp;📞 ${esc(b.phone||'')} &nbsp;${sourceChip(b.source)}</div>
   </div>`;
 }
 
@@ -1199,7 +1210,7 @@ function renderRooms() {
   const el = document.getElementById('roomGrid');
   if (!filtered.length) { el.innerHTML=emptyMsg('🚪','No rooms assigned to this section yet. Configure in Settings.'); return; }
   el.innerHTML = filtered.map(r=>{
-    const cur = bookings.find(b=>b.roomId===r.id&&b.status==='checked-in');
+    const cur = bookings.find(b=>b.status==='checked-in'&&((b.roomIds||[b.roomId]).includes(r.id)));
     const st = r.manualStatus==='maintenance'?'maintenance':cur?'occupied':'available';
     return `<div class="room-card ${st}" onclick='openRoomDetail("${r.id}")'>
       <div class="room-name">${esc(r.name)}</div>
@@ -1239,43 +1250,68 @@ function renderPayments() {
 }
 
 // ── NEW BOOKING ────────────────────────────────────────────────────────
+// ── FLOORS for villa booking ─────────────────────────────────────────
+// Ground floor: 101-104 | First floor: 201-204
+const FIRST_FLOOR_IDS  = ['R201','R202','R203','R204'];
+const GROUND_FLOOR_IDS = ['R101','R102','R103','R104'];
+
 window.openNewBooking = () => {
-  // Step 1: Ask Hotel or Villa
   showModal(`
     <div class="modal-title">New Booking</div>
     <div style="font-size:14px;color:var(--muted);margin-bottom:1.25rem">What type of booking?</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div onclick="openBookingForm('hotel')" style="cursor:pointer;border:2px solid var(--accent);border-radius:14px;padding:1.5rem;text-align:center;background:var(--accent-l)">
         <div style="font-size:32px;margin-bottom:8px">🏨</div>
-        <div style="font-weight:600;color:var(--accent-t);font-size:15px">Hotel Room</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Single room</div>
+        <div style="font-weight:600;color:var(--accent-t);font-size:15px">Individual Room</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Single room booking</div>
       </div>
       <div onclick="openBookingForm('villa')" style="cursor:pointer;border:2px solid var(--purple);border-radius:14px;padding:1.5rem;text-align:center;background:var(--purple-l)">
         <div style="font-size:32px;margin-bottom:8px">🌴</div>
-        <div style="font-weight:600;color:var(--purple);font-size:15px">Villa</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">Multiple rooms</div>
+        <div style="font-weight:600;color:var(--purple);font-size:15px">Villa Booking</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">Group — multiple rooms</div>
       </div>
     </div>`);
 };
 
 window.openBookingForm = (bookingType) => {
   const isVilla = bookingType === 'villa';
-  const roomOpts = rooms.map(r=>`<option value="${r.id}">[${(r.property||'hotel').toUpperCase()}] ${r.name} – ${r.type}</option>`).join('');
-  // For villa: show all 8 rooms as checkboxes with availability
-  const villaRoomCheckboxes = rooms.map(r => {
-    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;background:var(--surface)">
-      <input type="checkbox" class="villa-room-cb" value="${r.id}" style="width:18px;height:18px;cursor:pointer;accent-color:var(--purple)"/>
-      <div>
+  const roomOpts = rooms.map(r=>`<option value="${r.id}">${r.name} – ${r.type}</option>`).join('');
+
+  // Villa room selector — first floor pre-checked, ground floor optional
+  const firstFloor = rooms.filter(r=>FIRST_FLOOR_IDS.includes(r.id));
+  const groundFloor = rooms.filter(r=>GROUND_FLOOR_IDS.includes(r.id));
+
+  const roomRow = (r, checked, disabled) => {
+    const conflict = checkRoomConflict(r.id, todayStr(), todayStr(), null); // placeholder
+    return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;background:var(--surface);${disabled?'opacity:.5':''}">
+      <input type="checkbox" class="villa-room-cb" value="${r.id}" ${checked?'checked':''} ${disabled?'disabled':''} style="width:18px;height:18px;accent-color:var(--purple)"/>
+      <div style="flex:1">
         <div style="font-weight:600;font-size:14px">${esc(r.name)}</div>
-        <div style="font-size:12px;color:var(--muted)">${esc(r.type)} · ${(r.property||'hotel').toUpperCase()}</div>
+        <div style="font-size:12px;color:var(--muted)">${esc(r.type)}</div>
       </div>
+      <span class="room-avail-badge-${r.id}" style="font-size:11px;color:var(--green)"></span>
     </label>`;
-  }).join('');
+  };
+
+  const villaHtml = `
+    <div class="fw">
+      <div class="field-label" style="color:var(--purple)">First floor rooms (201–204)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Always included in villa booking</div>
+      ${firstFloor.map(r=>roomRow(r,true,false)).join('')}
+    </div>
+    <div class="fw">
+      <div class="field-label">Ground floor rooms (101–104)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Add any ground floor rooms if needed</div>
+      ${groundFloor.map(r=>roomRow(r,false,false)).join('')}
+    </div>
+    <div id="villa-room-summary" style="background:var(--purple-l);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--purple);margin-bottom:8px;display:none"></div>
+    <div id="villa-conflict-warn" style="font-size:12px;color:var(--red);margin-top:4px"></div>`;
 
   showModal(`
     <button class="modal-close" onclick="openNewBooking()">←</button>
-    <div class="modal-title">${isVilla ? '🌴 Villa Booking' : '🏨 Hotel Room Booking'}</div>
-    <div class="fw"><div class="field-label">Guest full name</div><input type="text" id="nb-name" placeholder="e.g. Kamal Perera"/></div>
+    <div class="modal-title">${isVilla?'🌴 Villa Booking':'🏨 Individual Room Booking'}</div>
+
+    <div class="fw"><div class="field-label">Guest / group name</div><input type="text" id="nb-name" placeholder="e.g. Perera Family"/></div>
     <div class="fw"><div class="field-label">Phone number</div><input type="tel" id="nb-phone" placeholder="077 123 4567"/></div>
     <div class="fw"><div class="field-label">Booking source</div>
       <select id="nb-source">
@@ -1291,36 +1327,31 @@ window.openBookingForm = (bookingType) => {
       <div class="fw"><div class="field-label">Check-in</div><input type="date" id="nb-checkin"/></div>
       <div class="fw"><div class="field-label">Check-out</div><input type="date" id="nb-checkout"/></div>
     </div>
-    ${isVilla ? `
-    <div class="fw">
-      <div class="field-label">Select rooms for this villa booking</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Tick all rooms included. Each will be blocked for the booked dates.</div>
-      <div id="villa-room-list">${villaRoomCheckboxes}</div>
-      <div id="villa-conflict-warn" style="font-size:12px;color:var(--red);margin-top:6px"></div>
-    </div>` : `
-    <div class="fw"><div class="field-label">Room</div><select id="nb-room">${roomOpts}</select></div>`}
-    <div class="fw"><div class="field-label">Number of adults</div>
+
+    ${isVilla ? villaHtml : `<div class="fw"><div class="field-label">Room</div><select id="nb-room">${roomOpts}</select></div>`}
+
+    <div class="fw"><div class="field-label">Total adults (pax)</div>
       <div class="stepper">
         <button class="stepper-btn" onclick="step('nb-adults',-1,1)">−</button>
-        <div class="stepper-val" id="nb-adults-val">2</div>
-        <input type="hidden" id="nb-adults" value="2"/>
-        <button class="stepper-btn" onclick="step('nb-adults',1,10)">+</button>
+        <div class="stepper-val" id="nb-adults-val">${isVilla?8:2}</div>
+        <input type="hidden" id="nb-adults" value="${isVilla?8:2}"/>
+        <button class="stepper-btn" onclick="step('nb-adults',1,30)">+</button>
       </div>
     </div>
-    <div class="fw"><div class="field-label">Number of kids</div>
+    <div class="fw"><div class="field-label">Total kids</div>
       <div class="stepper">
         <button class="stepper-btn" onclick="step('nb-kids',-1,0)">−</button>
         <div class="stepper-val" id="nb-kids-val">0</div>
         <input type="hidden" id="nb-kids" value="0"/>
-        <button class="stepper-btn" onclick="step('nb-kids',1,10)">+</button>
+        <button class="stepper-btn" onclick="step('nb-kids',1,20)">+</button>
       </div>
     </div>
     <div class="row2">
-      <div class="fw"><div class="field-label">Total amount (Rs)</div><input type="number" id="nb-total" placeholder="0" oninput="calcNightlyRate()"/></div>
+      <div class="fw"><div class="field-label">Total charge (Rs)</div><input type="number" id="nb-total" placeholder="0" oninput="calcNightlyRate()"/></div>
       <div class="fw"><div class="field-label">Advance required (Rs)</div><input type="number" id="nb-advance" placeholder="0"/></div>
     </div>
-    <div id="nb-rate-hint" style="font-size:12px;margin-bottom:10px;min-height:16px"></div>
-    <div class="fw"><div class="field-label">Notes / special requests</div><textarea id="nb-notes" placeholder="Any special requests..."></textarea></div>
+    <div id="nb-rate-hint" style="font-size:12px;margin-bottom:10px;min-height:16px;color:var(--green)"></div>
+    <div class="fw"><div class="field-label">Notes / special requests</div><textarea id="nb-notes" placeholder="Any special requests, dietary needs, etc."></textarea></div>
     <button class="btn-big" id="nb-saveBtn" onclick="saveNewBooking('${bookingType}')">Save Booking</button>
     <div class="status err" id="nb-status"></div>`);
 
@@ -1330,7 +1361,21 @@ window.openBookingForm = (bookingType) => {
   document.getElementById('nb-checkin').addEventListener('change', () => { calcNightlyRate(); if(isVilla) checkVillaConflicts(); });
   document.getElementById('nb-checkout').addEventListener('change', () => { calcNightlyRate(); if(isVilla) checkVillaConflicts(); });
   if (isVilla) {
-    document.querySelectorAll('.villa-room-cb').forEach(cb => cb.addEventListener('change', checkVillaConflicts));
+    document.querySelectorAll('.villa-room-cb').forEach(cb => cb.addEventListener('change', () => { checkVillaConflicts(); updateVillaSummary(); }));
+    updateVillaSummary();
+  }
+};
+
+window.updateVillaSummary = () => {
+  const selected = Array.from(document.querySelectorAll('.villa-room-cb:checked')).map(cb=>cb.value);
+  const names = selected.map(id=>rooms.find(r=>r.id===id)?.name||id);
+  const el = document.getElementById('villa-room-summary');
+  if (!el) return;
+  if (names.length) {
+    el.style.display='block';
+    el.textContent = '🌴 Villa includes: '+names.join(', ')+' ('+selected.length+' room'+(selected.length>1?'s':'') +')';
+  } else {
+    el.style.display='none';
   }
 };
 
@@ -1345,7 +1390,7 @@ window.checkVillaConflicts = () => {
     const c = checkRoomConflict(rid, ci, co, null);
     if (c) {
       const r = rooms.find(x=>x.id===rid);
-      conflicts.push(`${r?.name||rid}: booked by ${c.guestName} (${fmtDate(c.checkIn)}–${fmtDate(c.checkOut)})`);
+      conflicts.push((r?.name||rid)+': booked by '+c.guestName+' ('+fmtDate(c.checkIn)+'–'+fmtDate(c.checkOut)+')');
     }
   });
   warn.textContent = conflicts.length ? '⚠️ Conflicts: '+conflicts.join(', ') : '';
@@ -1370,68 +1415,71 @@ window.saveNewBooking = async (bookingType) => {
   const source = document.getElementById('nb-source').value;
   const notes = document.getElementById('nb-notes').value.trim();
   const isVilla = bookingType==='villa';
+  const errEl = document.getElementById('nb-status');
 
-  if (!name||!phone||!checkIn||!checkOut){document.getElementById('nb-status').textContent='Fill in all required fields.';return;}
-  if (checkOut<=checkIn){document.getElementById('nb-status').textContent='Check-out must be after check-in.';return;}
-
-  // Villa: get selected rooms
-  let villaRoomIds = [];
-  if (isVilla) {
-    villaRoomIds = Array.from(document.querySelectorAll('.villa-room-cb:checked')).map(cb=>cb.value);
-    if (villaRoomIds.length===0){document.getElementById('nb-status').textContent='Please select at least one room for the villa booking.';return;}
-    // Check conflicts for all selected rooms
-    for (const rid of villaRoomIds) {
-      const c = checkRoomConflict(rid, checkIn, checkOut, null);
-      if (c) {
-        const r = rooms.find(x=>x.id===rid);
-        document.getElementById('nb-status').textContent=`⚠️ ${r?.name||rid} is already booked by ${c.guestName} (${fmtDate(c.checkIn)}–${fmtDate(c.checkOut)})`;
-        return;
-      }
-    }
-  } else {
-    // Hotel: single room conflict check
-    const roomId = document.getElementById('nb-room').value;
-    const conflict = checkRoomConflict(roomId, checkIn, checkOut, null);
-    if (conflict) {
-      document.getElementById('nb-status').textContent='⚠️ Room already booked for '+conflict.guestName+' ('+fmtDate(conflict.checkIn)+' – '+fmtDate(conflict.checkOut)+')';
-      return;
-    }
-  }
+  if (!name||!phone||!checkIn||!checkOut){errEl.textContent='Please fill in all required fields.';return;}
+  if (checkOut<=checkIn){errEl.textContent='Check-out must be after check-in.';return;}
 
   const btn = document.getElementById('nb-saveBtn');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Saving...';
 
   try {
     let firstRef = null;
+
     if (isVilla) {
-      // Create one booking per room, all linked by a villaGroupId
-      const villaGroupId = 'VG-'+Date.now();
-      const villaRoomNames = villaRoomIds.map(id=>rooms.find(r=>r.id===id)?.name||id).join(', ');
-      for (let i=0; i<villaRoomIds.length; i++) {
-        const rid = villaRoomIds[i];
-        const room = rooms.find(r=>r.id===rid);
-        const ref = await addDoc(collection(DB,'bookings'),{
-          guestName:name, phone, checkIn, checkOut,
-          roomId:rid, room:room?.name||'', roomType:room?.type||'',
-          property:'villa', bookingType:'villa',
-          villaGroupId, villaRoomNames,
-          adults, kids, source,
-          totalAmount: i===0 ? total : 0, // total only on first room
-          advanceAmount: i===0 ? advance : 0,
-          advanceStatus:'pending', balanceDue: i===0 ? total : 0,
-          status:'confirmed', notes, idDetails:'',
-          createdAt:new Date().toISOString(),
-          createdBy:currentUser?.email||'',
-        });
-        if (i===0) firstRef = ref;
+      // Villa: one single Firestore document with roomIds[] array
+      const villaRoomIds = Array.from(document.querySelectorAll('.villa-room-cb:checked')).map(cb=>cb.value);
+      if (!villaRoomIds.length){errEl.textContent='Please select at least one room.';btn.disabled=false;btn.textContent='Save Booking';return;}
+
+      // Conflict check for each room
+      for (const rid of villaRoomIds) {
+        const c = checkRoomConflict(rid, checkIn, checkOut, null);
+        if (c) {
+          const r = rooms.find(x=>x.id===rid);
+          errEl.textContent='⚠️ '+(r?.name||rid)+' is already booked by '+c.guestName+' ('+fmtDate(c.checkIn)+'–'+fmtDate(c.checkOut)+')';
+          btn.disabled=false; btn.textContent='Save Booking'; return;
+        }
       }
+
+      const villaRoomNames = villaRoomIds.map(id=>rooms.find(r=>r.id===id)?.name||id);
+      const firstFloorIncluded = villaRoomIds.filter(id=>FIRST_FLOOR_IDS.includes(id));
+      const groundFloorIncluded = villaRoomIds.filter(id=>GROUND_FLOOR_IDS.includes(id));
+      const roomSummary = (firstFloorIncluded.length?'First floor: '+firstFloorIncluded.map(id=>rooms.find(r=>r.id===id)?.name||id).join(', '):'') +
+        (groundFloorIncluded.length?(firstFloorIncluded.length?' + ':'')+' Ground: '+groundFloorIncluded.map(id=>rooms.find(r=>r.id===id)?.name||id).join(', '):'');
+
+      // ONE document for the whole villa booking
+      firstRef = await addDoc(collection(DB,'bookings'),{
+        guestName:name, phone, checkIn, checkOut,
+        bookingType:'villa',
+        property:'villa',
+        roomIds: villaRoomIds,                    // array of all room IDs
+        roomId: villaRoomIds[0],                  // primary room (for compatibility)
+        room: villaRoomNames.join(', '),           // display string
+        roomType: 'Villa — '+villaRoomIds.length+' rooms',
+        roomSummary,
+        adults, kids, source,
+        totalAmount:total, advanceAmount:advance,
+        advanceStatus:'pending', balanceDue:total,
+        status:'confirmed', notes, idDetails:'',
+        createdAt:new Date().toISOString(),
+        createdBy:currentUser?.email||'',
+      });
+
     } else {
+      // Individual room booking — single document as before
       const roomId = document.getElementById('nb-room').value;
+      const conflict = checkRoomConflict(roomId, checkIn, checkOut, null);
+      if (conflict) {
+        errEl.textContent='⚠️ Room already booked for '+conflict.guestName+' ('+fmtDate(conflict.checkIn)+' – '+fmtDate(conflict.checkOut)+')';
+        btn.disabled=false; btn.textContent='Save Booking'; return;
+      }
       const room = rooms.find(r=>r.id===roomId);
       firstRef = await addDoc(collection(DB,'bookings'),{
         guestName:name, phone, checkIn, checkOut,
-        roomId, room:room?.name||'', roomType:room?.type||'',
-        property:room?.property||'hotel', bookingType:'hotel',
+        bookingType:'hotel',
+        property:room?.property||'hotel',
+        roomId, roomIds:[roomId],
+        room:room?.name||'', roomType:room?.type||'',
         adults, kids, source,
         totalAmount:total, advanceAmount:advance,
         advanceStatus:'pending', balanceDue:total,
@@ -1503,7 +1551,7 @@ window.openDetail = id => {
       <div class="pay-row total"><span>Balance due</span><span>Rs ${fmt(b.balanceDue)}</span></div>
     </div>
     <div class="detail-row"><span class="detail-key">Phone</span><span class="detail-val"><a href="tel:${esc(b.phone)}" style="color:var(--accent)">${esc(b.phone)}</a></span></div>
-    <div class="detail-row"><span class="detail-key">Room</span><span class="detail-val">${esc(b.room)} – ${esc(b.roomType)}</span></div>
+    ${b.bookingType==='villa'?`<div class="detail-row"><span class="detail-key">Villa rooms</span><span class="detail-val" style="text-align:right">${esc(b.roomSummary||b.room)}</span></div><div class="detail-row"><span class="detail-key">Room count</span><span class="detail-val">${(b.roomIds||[b.roomId]).length} rooms</span></div>`:`<div class="detail-row"><span class="detail-key">Room</span><span class="detail-val">${esc(b.room)} – ${esc(b.roomType)}</span></div>`}
     <div class="detail-row"><span class="detail-key">Guests</span><span class="detail-val">${b.adults||1} adult${(b.adults||1)!=1?'s':''}${b.kids>0?', '+b.kids+' kid'+(b.kids>1?'s':''):''}</span></div>
     <div class="detail-row"><span class="detail-key">Check-in</span><span class="detail-val">${fmtDate(b.checkIn)}</span></div>
     <div class="detail-row"><span class="detail-key">Check-out</span><span class="detail-val">${fmtDate(b.checkOut)}</span></div>
@@ -1922,7 +1970,9 @@ function checkRoomConflict(roomId, checkIn, checkOut, excludeId) {
   return bookings.find(b => {
     if (b.status==='cancelled'||b.status==='checked-out') return false;
     if (excludeId && b._id===excludeId) return false;
-    if (b.roomId!==roomId) return false;
+    // Check both single roomId and roomIds array (villa bookings)
+    const roomIds = b.roomIds || [b.roomId];
+    if (!roomIds.includes(roomId)) return false;
     return b.checkIn < checkOut && b.checkOut > checkIn;
   });
 }
