@@ -519,15 +519,15 @@ const DEFAULT_ROOMS = [
 // Leave as empty strings if you haven't set up Firebase yet.
 // ─────────────────────────────────────────────────────────────────────
 const HARDCODED_CONFIG = {
-  apiKey:            "AIzaSyBthQxCjnJNygAX5JvtfSRBWxhfaFZoVig",
-  authDomain:        "summer-glow.firebaseapp.com",
-  projectId:         "summer-glow",
-  storageBucket:     "summer-glow.firebasestorage.app",
-  messagingSenderId: "210248253727",
-  appId:             "1:210248253727:web:68301140b2e00b021df02a"
+  apiKey:            "",
+  authDomain:        "",
+  projectId:         "",
+  storageBucket:     "",
+  messagingSenderId: "",
+  appId:             ""
 };
 // ─────────────────────────────────────────────────────────────────────
-//Version 15
+
 // ── BOOTSTRAP ────────────────────────────────────────────────────────
 // Pre-fill setup form if diagnostic already saved a config
 function prefillSetupFromDiag() {
@@ -1658,6 +1658,10 @@ window.confirmCheckout = async (id, bal) => {
     }
   }
   await updateDoc(doc(DB,'bookings',id), updates);
+  // Flag room as needing cleaning
+  if (b?.roomId) {
+    await updateDoc(doc(DB,'rooms',b.roomId),{needsCleaning:true});
+  }
   closeModal();
 };
 
@@ -2014,15 +2018,7 @@ window.markRoomClean = async id => {
   await updateDoc(doc(DB,'rooms',id),{needsCleaning:false});
 };
 
-// Override confirmCheckout to flag room for cleaning
-const _origConfirmCheckout = window.confirmCheckout;
-window.confirmCheckout = async (id, bal) => {
-  await _origConfirmCheckout(id, bal);
-  const b = bookings.find(x=>x._id===id);
-  if (b?.roomId) {
-    await updateDoc(doc(DB,'rooms',b.roomId),{needsCleaning:true});
-  }
-};
+
 
 // 5. RATE CALCULATOR — auto show rate per night when total & dates filled
 window.calcNightlyRate = () => {
