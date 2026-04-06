@@ -519,12 +519,12 @@ const DEFAULT_ROOMS = [
 // Leave as empty strings if you haven't set up Firebase yet.
 // ─────────────────────────────────────────────────────────────────────
 const HARDCODED_CONFIG = {
-  apiKey:            "",
-  authDomain:        "",
-  projectId:         "",
-  storageBucket:     "",
-  messagingSenderId: "",
-  appId:             ""
+  apiKey:            "AIzaSyBthQxCjnJNygAX5JvtfSRBWxhfaFZoVig",
+  authDomain:        "summer-glow.firebaseapp.com",
+  projectId:         "summer-glow",
+  storageBucket:     "summer-glow.firebasestorage.app",
+  messagingSenderId: "210248253727",
+  appId:             "1:210248253727:web:68301140b2e00b021df02a"
 };
 // ─────────────────────────────────────────────────────────────────────
 
@@ -898,7 +898,11 @@ function showHousekeepingApp() {
   };
   window.hkMarkClean = async (id, btn) => {
     await updateDoc(doc(DB,'rooms',id),{needsCleaning:false});
-    btn.closest('.hk-room-card').remove();
+    const card = btn.closest('.hk-room-card');
+    if (card) card.remove();
+    // Update local rooms for housekeeping view
+    const r = rooms.find(x=>x.id===id);
+    if (r) r.needsCleaning = false;
   };
 }
 
@@ -1658,10 +1662,9 @@ window.confirmCheckout = async (id, bal) => {
     }
   }
   await updateDoc(doc(DB,'bookings',id), updates);
-  // Flag room as needing cleaning
-  if (b?.roomId) {
-    await updateDoc(doc(DB,'rooms',b.roomId),{needsCleaning:true});
-  }
+  // Flag ALL rooms as needing cleaning (handles both hotel single room and villa multi-room)
+  const roomsToClean = b?.roomIds && b.roomIds.length ? b.roomIds : (b?.roomId ? [b.roomId] : []);
+  await Promise.all(roomsToClean.map(rid => updateDoc(doc(DB,'rooms',rid),{needsCleaning:true})));
   closeModal();
 };
 
@@ -2016,6 +2019,11 @@ function renderHousekeeping() {
 
 window.markRoomClean = async id => {
   await updateDoc(doc(DB,'rooms',id),{needsCleaning:false});
+  // Update local rooms array immediately so UI refreshes without waiting for Firestore snapshot
+  const r = rooms.find(x=>x.id===id);
+  if (r) r.needsCleaning = false;
+  renderHousekeeping();
+  renderRooms();
 };
 
 
